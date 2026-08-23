@@ -95,11 +95,12 @@ function getEnsembleDbScore() {
   const minimumDb = state.level === 'senior' ? 4 : 0;
   const minimumDe = 4;
   const maximum = state.level === 'senior' ? 9 : 10;
-  const dbEntries = state.entries.filter((entry) => entry.category === 'db' || entry.category === 'mixed');
+  const dbCategories = ['jumps', 'balances', 'rotations', 'mixed'];
+  const dbEntries = state.entries.filter((entry) => dbCategories.includes(entry.category));
   const deEntries = state.entries.filter((entry) => entry.category === 'de');
   const risks = state.entries.filter((entry) => entry.category === 'risks');
-  const countedRoutine = state.entries.filter((entry) => ['db', 'mixed', 'de'].includes(entry.category)).slice(0, maximum);
-  const countedDb = countedRoutine.filter((entry) => ['db', 'mixed'].includes(entry.category));
+  const countedRoutine = state.entries.filter((entry) => dbCategories.includes(entry.category) || entry.category === 'de').slice(0, maximum);
+  const countedDb = countedRoutine.filter((entry) => dbCategories.includes(entry.category));
   const countedDe = countedRoutine.filter((entry) => entry.category === 'de');
   const countedRisks = risks.slice(0, 1);
   const missingGroups = ['jumps', 'balances', 'rotations'].filter((group) => !dbEntries.some((entry) => entry.group === group)).length;
