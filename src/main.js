@@ -133,8 +133,8 @@ function getDaScore() {
 
 function getEnsembleDaScore() {
   const maximum = state.level === 'senior' ? 14 : 10;
-  const minimumPerType = state.level === 'senior' ? 3 : 2;
-  const countedDa = state.entries.filter((entry) => ['cc', 'cr', 'multipleThrow', 'multipleCatch'].includes(entry.category)).slice(0, maximum);
+  const minimum = state.level === 'senior' ? 9 : 6;
+  const countedDa = state.entries.filter((entry) => ['cc', 'cr', 'multipleThrow', 'multipleCatch'].includes(entry.category) && entry.value > 0).slice(0, maximum);
   const countedByType = ['cc', 'cr', 'multiple'].reduce((result, type) => {
     result[type] = countedDa.filter((entry) => entry.category === type);
     if (type === 'multiple') {
@@ -142,13 +142,13 @@ function getEnsembleDaScore() {
     }
     return result;
   }, {});
-  const missingTypes = Object.values(countedByType).reduce((total, entries) => total + (entries.length < minimumPerType ? 1 : 0), 0);
+  const missingEntries = Math.max(0, minimum - countedDa.length);
   return {
     da: countedDa.reduce((total, entry) => total + entry.value, 0),
     countedDa,
     countedByType,
-    penalty: missingTypes * 0.3,
-    missingTypes,
+    penalty: missingEntries * 0.3,
+    missingEntries,
     maximum,
   };
 }
@@ -634,7 +634,6 @@ function attachArtisticEventListeners() {
 
     app.querySelector('[data-action="finish-artistic"]')?.addEventListener('click', () => {
       // Final score is calculated, can save or finalize
-      alert(`Artistic Deduction: ${getArtisticDeduction().toFixed(1)}`);
       // Reset for next routine
       state.artisticStage = 1;
       state.connectionCount = 0;
@@ -691,7 +690,7 @@ function renderExecution() {
           <section class="execution-board" aria-label="Execution deductions">
           <div class="total-panel"><div class="score-label"><span class="score-line"></span>TOTAL PENALTY<span class="score-line"></span></div><div class="score ${state.executionValidated ? 'validated-score' : ''}">${format(total)}</div><div class="total-caption">${state.executionPenalties.length} ${state.executionPenalties.length === 1 ? 'deduction' : 'deductions'} recorded</div></div>
           <div class="penalty-grid">${executionPenalties.map(({ value, className }) => `<button class="execution-penalty ${className}" data-execution-penalty="${value}" ${state.executionValidated ? 'disabled' : ''}>${value.toFixed(1)}</button>`).join('')}</div>
-          <div class="execution-actions"><button class="execution-secondary" data-execution-action="undo" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>↶ <span>Undo</span></button><button class="execution-secondary" data-execution-action="reset" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>Reset</button><button class="validate-button execution-validate" data-execution-action="validate" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>${state.executionValidated ? 'Validated' : 'Validate'} <span>✓</span></button></div>
+          <div class="execution-actions"><button class="execution-secondary" data-execution-action="undo" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>↶ <span>Undo</span></button><button class="execution-secondary" data-execution-action="reset" ${state.executionPenalties.length ? '' : 'disabled'}>Reset</button><button class="validate-button execution-validate" data-execution-action="validate" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>${state.executionValidated ? 'Validated' : 'Validate'} <span>✓</span></button></div>
           <div class="execution-log"><span class="log-label">LAST DEDUCTIONS</span><div class="log-values">${state.executionPenalties.length ? state.executionPenalties.slice(-8).reverse().map((penalty) => `<span>−${format(penalty)}</span>`).join('') : '<span class="log-empty">No deductions recorded</span>'}</div></div>
         </section>
       </section>
@@ -701,7 +700,7 @@ function renderExecution() {
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => { state.discipline = button.dataset.discipline; state.executionPenalties = []; state.executionValidated = false; renderExecution(); }));
   app.querySelectorAll('[data-execution-penalty]').forEach((button) => button.addEventListener('click', () => { state.executionPenalties.push(Number(button.dataset.executionPenalty)); renderExecution(); }));
   app.querySelector('[data-execution-action="undo"]')?.addEventListener('click', () => { state.executionPenalties.pop(); renderExecution(); });
-  app.querySelector('[data-execution-action="reset"]')?.addEventListener('click', () => { state.executionPenalties = []; renderExecution(); });
+  app.querySelector('[data-execution-action="reset"]')?.addEventListener('click', () => { state.executionPenalties = []; state.executionValidated = false; renderExecution(); });
   app.querySelector('[data-execution-action="validate"]')?.addEventListener('click', () => { state.executionValidated = true; renderExecution(); });
 }
 
