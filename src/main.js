@@ -146,6 +146,7 @@ function getEnsembleDaScore() {
   return {
     da: countedDa.reduce((total, entry) => total + entry.value, 0),
     countedDa,
+    countedAcrobatics: [],
     countedByType,
     penalty: missingEntries * 0.3,
     missingEntries,
@@ -276,7 +277,7 @@ function renderArtisticStage1() {
             <div class="artistic-history">
               <h3>Action History</h3>
               <div class="history-items">
-                ${state.artisticHistory.length ? state.artisticHistory.map((item, idx) => `
+                ${state.artisticHistory.length ? [...state.artisticHistory].reverse().map((item, idx) => `
                   <div class="history-item">
                     <span class="history-idx">${idx + 1}</span>
                     <span class="history-action">${item.action}</span>
@@ -450,7 +451,7 @@ function render() {
           <section class="history">
             <div class="history-head"><div><p class="eyebrow">${panelType} ROUTINE LOG</p><h2>${panelType} history</h2></div><span class="entry-total">${state.entries.length.toString().padStart(2, '0')} ENTRIES</span></div>
             ${state.entries.length ? `<div class="history-list">${[...state.entries].reverse().map((entry, reverseIndex) => {
-              const counted = state.mode === 'da' ? daScore.countedDa.includes(entry) : (entry.category === 'risks' ? score.countedRisks.includes(entry) : state.discipline === 'ensemble' ? score.countedDb.includes(entry) || score.countedDe.includes(entry) : score.countedDb.includes(entry));
+              const counted = state.mode === 'da' ? daScore.countedDa.includes(entry) && (!entry.acrobatic || daScore.countedAcrobatics.includes(entry)) : (entry.category === 'risks' ? score.countedRisks.includes(entry) : state.discipline === 'ensemble' ? score.countedDb.includes(entry) || score.countedDe.includes(entry) : score.countedDb.includes(entry));
               const category = (state.discipline === 'ensemble' ? ensembleCategories : categories).find((item) => (item.entryCategory || item.id) === entry.category);
               const entryState = entry.value === 0 ? 'INVALID' : counted ? 'COUNTED' : 'OVER LIMIT';
               const displayedValue = state.mode === 'da' && entry.acrobatic && !counted ? 0 : entry.value;
@@ -691,7 +692,7 @@ function renderExecution() {
           <div class="total-panel"><div class="score-label"><span class="score-line"></span>TOTAL PENALTY<span class="score-line"></span></div><div class="score ${state.executionValidated ? 'validated-score' : ''}">${format(total)}</div><div class="total-caption">${state.executionPenalties.length} ${state.executionPenalties.length === 1 ? 'deduction' : 'deductions'} recorded</div></div>
           <div class="penalty-grid">${executionPenalties.map(({ value, className }) => `<button class="execution-penalty ${className}" data-execution-penalty="${value}" ${state.executionValidated ? 'disabled' : ''}>${value.toFixed(1)}</button>`).join('')}</div>
           <div class="execution-actions"><button class="execution-secondary" data-execution-action="undo" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>↶ <span>Undo</span></button><button class="execution-secondary" data-execution-action="reset" ${state.executionPenalties.length ? '' : 'disabled'}>Reset</button><button class="validate-button execution-validate" data-execution-action="validate" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>${state.executionValidated ? 'Validated' : 'Validate'} <span>✓</span></button></div>
-          <div class="execution-log"><span class="log-label">LAST DEDUCTIONS</span><div class="log-values">${state.executionPenalties.length ? state.executionPenalties.slice(-8).reverse().map((penalty) => `<span>−${format(penalty)}</span>`).join('') : '<span class="log-empty">No deductions recorded</span>'}</div></div>
+          <div class="execution-log"><span class="log-label">DEDUCTION HISTORY</span><div class="log-values">${state.executionPenalties.length ? state.executionPenalties.slice().reverse().map((penalty, index) => `<span><strong>${String(state.executionPenalties.length - index).padStart(2, '0')}</strong> −${format(penalty)}</span>`).join('') : '<span class="log-empty">No deductions recorded</span>'}</div></div>
         </section>
       </section>
     </main>`;
