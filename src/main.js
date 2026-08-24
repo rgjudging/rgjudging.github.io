@@ -60,10 +60,104 @@ const state = {
   },
   artisticHistory: [],
   artisticPenalties: {},
+  artisticValidated: false,
+  executionPenalties: [],
+  executionValidated: false,
+  tabStates: {},
+  scoreSummaryVisible: false,
 };
 
 const app = document.querySelector('#app');
 const format = (value) => value.toFixed(1);
+
+function captureTabState() {
+  return {
+    category: state.category,
+    entries: state.entries,
+    validated: state.validated,
+    artisticStage: state.artisticStage,
+    connectionCount: state.connectionCount,
+    rhythmCount: state.rhythmCount,
+    interruptionUsed: state.interruptionUsed,
+    danceSteps: state.danceSteps,
+    dynamicChanges: state.dynamicChanges,
+    contactUsed: state.contactUsed,
+    collectiveWorks: state.collectiveWorks,
+    artisticHistory: state.artisticHistory,
+    artisticPenalties: state.artisticPenalties,
+    artisticValidated: state.artisticValidated,
+    executionPenalties: state.executionPenalties,
+    executionValidated: state.executionValidated,
+  };
+}
+
+function restoreTabState(tabState) {
+  const defaults = {
+    category: state.mode === 'da' && state.discipline === 'ensemble' ? 'cc' : 'jumps',
+    entries: [], validated: false, artisticStage: 1, connectionCount: 0,
+    rhythmCount: 0, interruptionUsed: false, danceSteps: 0, dynamicChanges: 0,
+    contactUsed: false, collectiveWorks: { synchro: false, canon: false, choral: false, contrast: false },
+    artisticHistory: [], artisticPenalties: {}, artisticValidated: false,
+    executionPenalties: [], executionValidated: false,
+  };
+  const next = { ...defaults, ...tabState };
+  Object.assign(state, next);
+}
+
+function switchTab(mode, discipline = state.discipline) {
+  state.tabStates[`${state.discipline}:${state.mode}`] = captureTabState();
+  state.mode = mode;
+  state.discipline = discipline;
+  restoreTabState(state.tabStates[`${discipline}:${mode}`]);
+}
+
+function getOverallSummary() {
+  const current = captureTabState();
+  const currentMode = state.mode;
+  const currentDiscipline = state.discipline;
+  const summary = { db: 0, da: 0, artistry: 10, execution: 10 };
+  ['db', 'da', 'artistic', 'execution'].forEach((mode) => {
+    const tabState = mode === currentMode && currentDiscipline === state.discipline
+      ? current
+      : state.tabStates[`${currentDiscipline}:${mode}`];
+    if (!tabState) return;
+    restoreTabState(tabState);
+    if (mode === 'db') {
+      const score = getScore();
+      summary.db = Math.max(0, score.db + (score.de || 0) + score.risks - score.penalty);
+    } else if (mode === 'da') {
+      const score = getDaScore();
+      summary.da = Math.max(0, score.da - (state.discipline === 'ensemble' ? score.penalty : 0));
+    } else if (mode === 'artistic') {
+          summary.artistry = Math.max(0, 10 - getArtisticDeduction());
+    } else {
+      summary.execution = Math.max(0, 10 - state.executionPenalties.reduce((total, penalty) => total + penalty, 0));
+    }
+  });
+  state.mode = currentMode;
+  state.discipline = currentDiscipline;
+  restoreTabState(current);
+  summary.difficulty = summary.db + summary.da;
+  summary.total = Math.max(0, summary.difficulty + summary.artistry + summary.execution);
+  return summary;
+}
+
+function showOverallScore() {
+  state.scoreSummaryVisible = true;
+}
+
+function renderScoreSummary() {
+  if (!state.scoreSummaryVisible) return '';
+  const summary = getOverallSummary();
+  return `<section class="overall-summary" aria-label="Overall score summary">
+    <div class="overall-summary-heading"><span>OVERALL SCORE</span><strong>${format(summary.total)}</strong></div>
+    <div class="overall-summary-grid">
+      <div><span>DIFFICULTY</span><strong>${format(summary.difficulty)}</strong><small>DB ${format(summary.db)} + DA ${format(summary.da)}</small></div>
+      <div><span>ARTISTRY</span><strong>${format(summary.artistry)}</strong><small>10.0 − deductions</small></div>
+      <div><span>EXECUTION</span><strong>${format(summary.execution)}</strong><small>10.0 − deductions</small></div>
+    </div>
+  </section>`;
+}
 
 function getLimits() {
   return state.level === 'senior' ? { db: 8, risks: 4, da: 15 } : { db: 6, risks: 3, da: 12 };
@@ -217,7 +311,6 @@ function renderArtisticStage1() {
               <div class="score">${format(deduction)}</div>
             </div>
           </div>
-
           <div class="artistic-stage1-panel">
             <div class="penalty-button-grid">
               <div class="penalty-group">
@@ -287,6 +380,8 @@ function renderArtisticStage1() {
               </div>
             </div>
           </div>
+          <button class="summary-toggle" data-action="show-score-summary">${state.scoreSummaryVisible ? 'Score summary visible' : 'Show total score'} <span>→</span></button>
+          ${renderScoreSummary()}
         </section>
       </section>
     </main>
@@ -325,7 +420,6 @@ function renderArtisticStage2() {
               <div class="score">${format(deduction)}</div>
             </div>
           </div>
-
           <div class="artistic-stage2-panel">
             ${(state.discipline === 'ensemble' ? ensembleArtisticPenalties : artisticPenalties).map(penalty => `
               <div class="penalty-row">
@@ -348,10 +442,12 @@ function renderArtisticStage2() {
                 <span>↶</span> Undo
               </button>
               <button class="finish-btn" data-action="finish-artistic">
-                Finish <span>✓</span>
+                Validate score <span>✓</span>
               </button>
             </div>
           </div>
+          <button class="summary-toggle" data-action="show-score-summary">${state.scoreSummaryVisible ? 'Score summary visible' : 'Show total score'} <span>→</span></button>
+          ${renderScoreSummary()}
         </section>
       </section>
     </main>
@@ -377,8 +473,9 @@ function render() {
     : (state.discipline === 'ensemble' ? ensembleCategories : categories);
   const activeCategory = navCategories.find((category) => category.id === state.category) || categories.find((category) => category.id === state.category) || { id: 'da', label: 'Apparatus', icon: 'D', accent: 'blue' };
   const activeEntries = state.entries.filter((entry) => entry.category === state.category);
-  const values = state.mode === 'da' && state.discipline === 'ensemble' ? Array.from({ length: 10 }, (_, index) => index / 10) : state.mode === 'da' ? [0, 0.2, 0.3, 0.4] : Array.from({ length: 26 }, (_, index) => index / 10);
-  const valueMaximum = state.mode === 'da' && state.discipline === 'ensemble' ? '0.9' : state.mode === 'da' ? '0.4' : '2.5';
+  const limitedDbCategory = state.mode === 'db' && ['jumps', 'balances'].includes(activeCategory.id);
+  const values = state.mode === 'da' && state.discipline === 'ensemble' ? Array.from({ length: 10 }, (_, index) => index / 10) : state.mode === 'da' ? [0, 0.2, 0.3, 0.4] : Array.from({ length: limitedDbCategory ? 9 : 26 }, (_, index) => index / 10);
+  const valueMaximum = state.mode === 'da' && state.discipline === 'ensemble' ? '0.9' : state.mode === 'da' ? '0.4' : limitedDbCategory ? '0.8' : '2.5';
   const panelType = state.mode === 'da' ? (state.discipline === 'ensemble' ? activeCategory.label : 'DA') : activeCategory.id === 'risks' ? 'R' : activeCategory.label;
   const displayScore = state.mode === 'da' ? Math.max(0, daScore.da - (state.discipline === 'ensemble' ? daScore.penalty : 0)) : Math.max(0, score.db + (score.de || 0) + score.risks - score.penalty);
 
@@ -434,7 +531,6 @@ function render() {
             <div class="score ${state.validated ? 'validated-score' : ''}">${format(displayScore)}</div>
             ${state.mode === 'da' ? `<div class="score-breakdown"><span>DA TOTAL <b>${format(daScore.da)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(state.discipline === 'ensemble' ? daScore.penalty : 0)}</b></span></div><div class="capacity-note">${daScore.countedDa.length}/${state.discipline === 'ensemble' ? daScore.maximum : limits.da} DA COUNTED</div>` : `<div class="score-breakdown"><span>DB <b>${format(score.db)}</b></span>${state.discipline === 'ensemble' ? `<span class="break-divider">+</span><span>DE <b>${format(score.de)}</b></span>` : ''}<span class="break-divider">+</span><span>R <b>${format(score.risks)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(score.penalty)}</b></span></div><div class="capacity-note">${state.discipline === 'ensemble' ? `${score.totalCounted}/9 DB + DE counted · ${score.countedRisks.length}/1 R counted` : `${score.countedDb.length}/${limits.db} DB · ${score.countedRisks.length}/${limits.risks} R counted`}</div>`}
           </div>
-
           <div class="input-panel">
             <div class="panel-topline"><span>SELECT ${panelType} VALUE</span><span class="value-range">0.0 <span class="range-line"></span> ${valueMaximum}</span></div>
             <div class="value-grid ${state.mode === 'da' ? 'da-grid' : 'db-grid'}">
@@ -442,6 +538,8 @@ function render() {
             </div>
             <div class="panel-footer"><span class="status-mark">+</span><span>Tap a value to add ${panelType} to the routine</span>${state.mode === 'da' ? `<button class="acrobatics-button ${state.entries.at(-1) && !state.entries.at(-1).acrobatic ? 'is-ready' : ''}" data-action="acrobatics" ${state.entries.length && !state.entries.at(-1).acrobatic ? '' : 'disabled'}><strong>A</strong><small>ACROBATICS</small></button>` : ''}<button class="undo-button" ${state.entries.length ? '' : 'disabled'} data-action="undo"><span>↶</span> Undo</button></div>
           </div>
+          <button class="summary-toggle" data-action="show-score-summary">${state.scoreSummaryVisible ? 'Score summary visible' : 'Show total score'} <span>→</span></button>
+          ${renderScoreSummary()}
 
           <div class="score-actions">
             <div class="validation-state ${state.validated ? 'is-validated' : ''}"><span class="validation-dot"></span>${state.validated ? 'SCORE VALIDATED' : 'SCORE NOT VALIDATED'}</div>
@@ -463,6 +561,7 @@ function render() {
     </main>
   `;
 
+  app.querySelector('[data-action="show-score-summary"]')?.addEventListener('click', () => { showOverallScore(); render(); });
   app.querySelectorAll('[data-category]').forEach((button) => button.addEventListener('click', () => { state.category = button.dataset.category; render(); }));
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => {
     state.discipline = button.dataset.discipline;
@@ -472,20 +571,7 @@ function render() {
     render();
   }));
   app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { 
-    state.mode = button.dataset.mode;
-    state.category = state.discipline === 'ensemble' && state.mode === 'da' ? 'cc' : 'jumps';
-    state.entries = [];
-    state.validated = false;
-    state.artisticStage = 1;
-    state.connectionCount = 0;
-    state.rhythmCount = 0;
-    state.interruptionUsed = false;
-    state.danceSteps = 0;
-    state.dynamicChanges = 0;
-    state.artisticHistory = [];
-    state.artisticPenalties = {};
-    state.contactUsed = false;
-    state.collectiveWorks = { synchro: false, canon: false, choral: false, contrast: false };
+    switchTab(button.dataset.mode);
     render();
   }));
   app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; render(); }));
@@ -497,34 +583,19 @@ function render() {
   }));
   app.querySelector('[data-action="acrobatics"]')?.addEventListener('click', () => { const lastEntry = state.entries.at(-1); if (lastEntry) { lastEntry.acrobatic = true; state.validated = false; render(); } });
   app.querySelector('[data-action="undo"]')?.addEventListener('click', () => { state.entries.pop(); render(); });
-  app.querySelector('[data-action="validate"]')?.addEventListener('click', () => { state.validated = true; render(); });
+  app.querySelector('[data-action="validate"]')?.addEventListener('click', () => { state.validated = true; showOverallScore(); render(); });
   app.querySelector('[data-action="reset"]')?.addEventListener('click', () => { state.entries = []; state.validated = false; render(); });
 }
 
 function attachArtisticEventListeners() {
+  app.querySelector('[data-action="show-score-summary"]')?.addEventListener('click', () => { showOverallScore(); render(); });
   // Mode switch
   app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { 
-    state.mode = button.dataset.mode;
-    state.entries = [];
-    state.validated = false;
-    state.artisticStage = 1;
-    state.connectionCount = 0;
-    state.rhythmCount = 0;
-    state.interruptionUsed = false;
-    state.danceSteps = 0;
-    state.dynamicChanges = 0;
-    state.artisticHistory = [];
-    state.artisticPenalties = {};
-    state.contactUsed = false;
-    state.collectiveWorks = { synchro: false, canon: false, choral: false, contrast: false };
+    switchTab(button.dataset.mode);
     render();
   }));
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => {
-    state.discipline = button.dataset.discipline;
-    state.contactUsed = false;
-    state.collectiveWorks = { synchro: false, canon: false, choral: false, contrast: false };
-    state.artisticHistory = [];
-    state.artisticPenalties = {};
+    switchTab(state.mode, button.dataset.discipline);
     render();
   }));
 
@@ -634,18 +705,8 @@ function attachArtisticEventListeners() {
     });
 
     app.querySelector('[data-action="finish-artistic"]')?.addEventListener('click', () => {
-      // Final score is calculated, can save or finalize
-      // Reset for next routine
-      state.artisticStage = 1;
-      state.connectionCount = 0;
-      state.rhythmCount = 0;
-      state.interruptionUsed = false;
-      state.danceSteps = 0;
-      state.dynamicChanges = 0;
-      state.artisticHistory = [];
-      state.artisticPenalties = {};
-      state.contactUsed = false;
-      state.collectiveWorks = { synchro: false, canon: false, choral: false, contrast: false };
+      state.artisticValidated = true;
+      showOverallScore();
       render();
     });
   }
@@ -694,15 +755,18 @@ function renderExecution() {
           <div class="execution-actions"><button class="execution-secondary" data-execution-action="undo" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>↶ <span>Undo</span></button><button class="execution-secondary" data-execution-action="reset" ${state.executionPenalties.length ? '' : 'disabled'}>Reset</button><button class="validate-button execution-validate" data-execution-action="validate" ${state.executionPenalties.length && !state.executionValidated ? '' : 'disabled'}>${state.executionValidated ? 'Validated' : 'Validate'} <span>✓</span></button></div>
           <div class="execution-log"><span class="log-label">DEDUCTION HISTORY</span><div class="log-values">${state.executionPenalties.length ? state.executionPenalties.slice().reverse().map((penalty, index) => `<span><strong>${String(state.executionPenalties.length - index).padStart(2, '0')}</strong> −${format(penalty)}</span>`).join('') : '<span class="log-empty">No deductions recorded</span>'}</div></div>
         </section>
+        <button class="summary-toggle" data-action="show-score-summary">${state.scoreSummaryVisible ? 'Score summary visible' : 'Show total score'} <span>→</span></button>
+        ${renderScoreSummary()}
       </section>
     </main>`;
 
-  app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { state.mode = button.dataset.mode; render(); }));
+  app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { switchTab(button.dataset.mode); render(); }));
+  app.querySelector('[data-action="show-score-summary"]')?.addEventListener('click', () => { showOverallScore(); render(); });
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => { state.discipline = button.dataset.discipline; state.executionPenalties = []; state.executionValidated = false; renderExecution(); }));
   app.querySelectorAll('[data-execution-penalty]').forEach((button) => button.addEventListener('click', () => { state.executionPenalties.push(Number(button.dataset.executionPenalty)); renderExecution(); }));
   app.querySelector('[data-execution-action="undo"]')?.addEventListener('click', () => { state.executionPenalties.pop(); renderExecution(); });
   app.querySelector('[data-execution-action="reset"]')?.addEventListener('click', () => { state.executionPenalties = []; state.executionValidated = false; renderExecution(); });
-  app.querySelector('[data-execution-action="validate"]')?.addEventListener('click', () => { state.executionValidated = true; renderExecution(); });
+  app.querySelector('[data-execution-action="validate"]')?.addEventListener('click', () => { state.executionValidated = true; showOverallScore(); renderExecution(); });
 }
 
 render();
