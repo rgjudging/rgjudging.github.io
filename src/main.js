@@ -72,9 +72,11 @@ const state = {
   penaltiesValidated: false,
   tabStates: {},
   scoreSummaryVisible: false,
+  settingsOpen: false,
+  settingsReturnMode: 'db',
   customSettings: {
-    individual: { db: 8, risks: 4, da: 15, danceSteps: 2, dynamicChanges: 2, minDbPerGroup: 1 },
-    ensemble: { db: 4, de: 4, risks: 1, maxCollaborations: 9, minPerType: 3, danceSteps: 2, dynamicChanges: 4 },
+    individual: { db: 8, risks: 4, da: 15, danceSteps: 2, dynamicChanges: 2, minDbPerGroup: 1, timeMin: 75, timeMax: 90 },
+    ensemble: { db: 4, de: 4, risks: 1, maxCollaborations: 14, minPerType: 3, danceSteps: 2, dynamicChanges: 4, timeMin: 135, timeMax: 150 },
   },
 };
 
@@ -131,8 +133,9 @@ function switchTab(mode, discipline = state.discipline) {
 }
 
 function getPenaltyScore() {
-  const lowerLimit = state.discipline === 'ensemble' ? 135 : 75;
-  const upperLimit = state.discipline === 'ensemble' ? 150 : 90;
+  const personalizedSettings = state.level === 'personalized' ? (state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual) : null;
+  const lowerLimit = personalizedSettings ? personalizedSettings.timeMin : state.discipline === 'ensemble' ? 135 : 75;
+  const upperLimit = personalizedSettings ? personalizedSettings.timeMax : state.discipline === 'ensemble' ? 150 : 90;
   const timePenalty = state.routineSeconds < lowerLimit
     ? (lowerLimit - state.routineSeconds) * 0.05
     : state.routineSeconds > upperLimit ? (state.routineSeconds - upperLimit) * 0.05 : 0;
@@ -195,22 +198,47 @@ function renderScoreSummary() {
 function renderSettings() {
   const settings = state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual;
   const groupSettings = state.discipline === 'ensemble';
+  if (!state.settingsOpen) {
+    app.innerHTML = `<main class="shell"><header class="topbar"><div class="brand"><span class="brand-mark">RG</span><span>JUDGE<span class="brand-dot">.</span></span></div><div class="session-meta"><span class="live-dot"></span><span>PERSONALIZED</span><span class="divider"></span><span>SESSION 04</span></div><div class="judge-label"><a href="./platform.html">PLATFORM</a> <strong>01</strong></div></header><section class="workspace"><aside class="sidebar"><div class="sidebar-heading"><span>LEVEL</span><span class="small-index">SETUP</span></div><div class="mode-switch"><button class="mode-button" data-mode="db">DB</button><button class="mode-button" data-mode="da">DA</button><button class="mode-button" data-mode="artistic">A</button><button class="mode-button" data-mode="execution">E</button><button class="mode-button" data-mode="penalties">P</button></div><div class="discipline-switch"><button class="level-button ${state.discipline === 'individual' ? 'selected' : ''}" data-discipline="individual">Individual</button><button class="level-button ${state.discipline === 'ensemble' ? 'selected' : ''}" data-discipline="ensemble">Groups</button></div></aside><section class="content settings-content"><div class="content-head"><div><p class="eyebrow">05 / 05 <span>/</span> PERSONALIZED</p><h1>Personalized<span class="heading-slash">/</span><span class="heading-muted">Scoring profile</span></h1></div><div class="level-switch"><button class="level-button" data-level="junior">Junior</button><button class="level-button" data-level="senior">Senior</button><button class="level-button selected" data-level="personalized">Personalized</button></div></div><p class="settings-intro">Choose a custom scoring profile for ${groupSettings ? 'Groups' : 'Individuals'}, then open Settings to edit its limits.</p><button class="validate-button" data-action="open-settings">Settings <span>→</span></button></section></section></main>`;
+    bindPersonalizedEvents();
+    return;
+  }
   app.innerHTML = `
     <main class="shell">
       <header class="topbar"><div class="brand"><span class="brand-mark">RG</span><span>JUDGE<span class="brand-dot">.</span></span></div><div class="session-meta"><span class="live-dot"></span><span>SETTINGS</span><span class="divider"></span><span>SESSION 04</span></div><div class="judge-label"><a href="./platform.html">PLATFORM</a> <strong>01</strong></div></header>
       <section class="workspace"><aside class="sidebar"><div class="sidebar-heading"><span>LEVEL</span><span class="small-index">SETUP</span></div><div class="mode-switch" aria-label="Judge screen"><button class="mode-button" data-mode="db">DB</button><button class="mode-button" data-mode="da">DA</button><button class="mode-button" data-mode="artistic">A</button><button class="mode-button" data-mode="execution">E</button><button class="mode-button" data-mode="penalties">P</button></div><div class="discipline-switch" aria-label="Routine type"><button class="level-button ${state.discipline === 'individual' ? 'selected' : ''}" data-discipline="individual">Individual</button><button class="level-button ${state.discipline === 'ensemble' ? 'selected' : ''}" data-discipline="ensemble">Groups</button></div><div class="sidebar-foot"><span class="rule"></span><span>CODE 2025—2028</span></div></aside>
-        <section class="content settings-content"><div class="content-head"><div><p class="eyebrow">05 / 05 <span>/</span> CUSTOM PARAMETERS</p><h1>Settings<span class="heading-slash">/</span><span class="heading-muted">${groupSettings ? 'Group limits' : 'Individual limits'}</span></h1></div><div class="level-switch"><button class="level-button" data-level="junior">Junior</button><button class="level-button" data-level="senior">Senior</button><button class="level-button selected" data-level="settings">Settings</button></div></div><p class="settings-intro">${groupSettings ? 'Configure DB, DE, R and collaboration requirements for Groups. Execution remains unchanged.' : 'Configure DB, R, DA and Artistic requirements for Individuals. Execution remains unchanged.'}</p><section class="settings-panel"><div class="settings-section"><span class="eyebrow">DIFFICULTY</span><div class="settings-grid">${groupSettings ? `<label>Number of DB<input type="number" min="0" max="99" value="${settings.db}" data-setting="db" /></label><label>Number of DE<input type="number" min="0" max="99" value="${settings.de}" data-setting="de" /></label><label>Number of R<input type="number" min="0" max="99" value="${settings.risks}" data-setting="risks" /></label><label>Max collaborations<input type="number" min="0" max="99" value="${settings.maxCollaborations}" data-setting="maxCollaborations" /></label><label>Minimum per type<input type="number" min="0" max="99" value="${settings.minPerType}" data-setting="minPerType" /></label>` : `<label>Number of DB<input type="number" min="0" max="99" value="${settings.db}" data-setting="db" /></label><label>Number of R<input type="number" min="0" max="99" value="${settings.risks}" data-setting="risks" /></label><label>Number of DA<input type="number" min="0" max="99" value="${settings.da}" data-setting="da" /></label><label>Minimum DB per body group<input type="number" min="0" max="99" value="${settings.minDbPerGroup}" data-setting="minDbPerGroup" /></label>`}</div></div><div class="settings-section"><span class="eyebrow">ARTISTRY</span><div class="settings-grid"><label>Dance steps<input type="number" min="0" max="99" value="${settings.danceSteps}" data-setting="danceSteps" /></label><label>Dynamic changes<input type="number" min="0" max="99" value="${settings.dynamicChanges}" data-setting="dynamicChanges" /></label></div></div><div class="settings-actions"><button class="reset-button" data-action="reset-settings">Reset parameters</button><button class="validate-button" data-action="apply-settings">Apply settings <span>→</span></button></div></section></section></section>
+        <section class="content settings-content"><div class="content-head"><div><p class="eyebrow">05 / 05 <span>/</span> CUSTOM PARAMETERS</p><h1>Settings<span class="heading-slash">/</span><span class="heading-muted">${groupSettings ? 'Group limits' : 'Individual limits'}</span></h1></div><div class="level-switch"><button class="level-button" data-level="junior">Junior</button><button class="level-button" data-level="senior">Senior</button><button class="level-button selected" data-level="settings">Settings</button></div></div><p class="settings-intro">${groupSettings ? 'Configure DB, DE, R and collaboration requirements for Groups. Execution remains unchanged.' : 'Configure DB, R, DA and Artistic requirements for Individuals. Execution remains unchanged.'}</p><section class="settings-panel"><div class="settings-section"><span class="eyebrow">DIFFICULTY</span><div class="settings-grid">${groupSettings ? `<label>Number of DB<input type="number" min="0" max="99" value="${settings.db}" data-setting="db" /></label><label>Number of DE<input type="number" min="0" max="99" value="${settings.de}" data-setting="de" /></label><label>Number of R<input type="number" min="0" max="99" value="${settings.risks}" data-setting="risks" /></label><label>Max collaborations<input type="number" min="0" max="99" value="${settings.maxCollaborations}" data-setting="maxCollaborations" /></label><label>Minimum per type<input type="number" min="0" max="99" value="${settings.minPerType}" data-setting="minPerType" /></label>` : `<label>Number of DB<input type="number" min="0" max="99" value="${settings.db}" data-setting="db" /></label><label>Number of R<input type="number" min="0" max="99" value="${settings.risks}" data-setting="risks" /></label><label>Number of DA<input type="number" min="0" max="99" value="${settings.da}" data-setting="da" /></label><label>Minimum DB per body group<input type="number" min="0" max="99" value="${settings.minDbPerGroup}" data-setting="minDbPerGroup" /></label>`}</div></div><div class="settings-section"><span class="eyebrow">ARTISTRY</span><div class="settings-grid"><label>Dance steps<input type="number" min="0" max="99" value="${settings.danceSteps}" data-setting="danceSteps" /></label><label>Dynamic changes<input type="number" min="0" max="99" value="${settings.dynamicChanges}" data-setting="dynamicChanges" /></label></div></div><div class="settings-section"><span class="eyebrow">TIMING</span><div class="settings-grid"><label>Minimum time (seconds)<input type="number" min="0" max="999" value="${settings.timeMin}" data-setting="timeMin" /></label><label>Maximum time (seconds)<input type="number" min="0" max="999" value="${settings.timeMax}" data-setting="timeMax" /></label></div></div><div class="settings-actions"><button class="reset-button" data-action="reset-settings">Reset parameters</button><button class="validate-button" data-action="apply-settings">Apply settings <span>→</span></button></div></section></section></section>
     </main>`;
+  const editorLevelButton = app.querySelector('[data-level="settings"]');
+  if (editorLevelButton) {
+    editorLevelButton.dataset.level = 'personalized';
+    editorLevelButton.textContent = 'Personalized';
+  }
   app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { state.mode = button.dataset.mode; render(); }));
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => { state.discipline = button.dataset.discipline; renderSettings(); }));
-  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; state.mode = button.dataset.level === 'settings' ? 'settings' : state.mode === 'settings' ? 'db' : state.mode; render(); }));
-  app.querySelector('[data-action="apply-settings"]')?.addEventListener('click', () => { const target = state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual; app.querySelectorAll('[data-setting]').forEach((input) => { target[input.dataset.setting] = Math.max(0, Number(input.value) || 0); }); render(); });
-  app.querySelector('[data-action="reset-settings"]')?.addEventListener('click', () => { state.customSettings = { individual: { db: 8, risks: 4, da: 15, danceSteps: 2, dynamicChanges: 2, minDbPerGroup: 1 }, ensemble: { db: 4, de: 4, risks: 1, maxCollaborations: 9, minPerType: 3, danceSteps: 2, dynamicChanges: 4 } }; renderSettings(); });
+  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; state.mode = button.dataset.level === 'personalized' ? 'personalized' : 'db'; state.settingsOpen = false; render(); }));
+  app.querySelector('[data-action="apply-settings"]')?.addEventListener('click', () => { const target = state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual; app.querySelectorAll('[data-setting]').forEach((input) => { target[input.dataset.setting] = Math.max(0, Number(input.value) || 0); }); state.mode = state.settingsReturnMode; state.settingsOpen = false; render(); });
+  app.querySelector('[data-action="reset-settings"]')?.addEventListener('click', () => { state.customSettings = { individual: { db: 8, risks: 4, da: 15, danceSteps: 2, dynamicChanges: 2, minDbPerGroup: 1, timeMin: 75, timeMax: 90 }, ensemble: { db: 4, de: 4, risks: 1, maxCollaborations: 14, minPerType: 3, danceSteps: 2, dynamicChanges: 4, timeMin: 135, timeMax: 150 } }; renderSettings(); });
+}
+
+function bindPersonalizedEvents() {
+  app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { state.mode = button.dataset.mode; render(); }));
+  app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => { state.discipline = button.dataset.discipline; renderSettings(); }));
+  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; state.mode = button.dataset.level === 'personalized' ? 'personalized' : state.mode; render(); }));
+  app.querySelector('[data-action="open-settings"]')?.addEventListener('click', () => { state.settingsReturnMode = 'db'; state.settingsOpen = true; state.mode = 'settings'; renderSettings(); });
 }
 
 function getLimits() {
-  if (state.level === 'settings') return state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual;
+  if (state.level === 'personalized') return state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual;
   return state.level === 'senior' ? { db: 8, risks: 4, da: 15 } : { db: 6, risks: 3, da: 12 };
+}
+
+function getArtisticLimits() {
+  if (state.level === 'personalized') {
+    const settings = state.discipline === 'ensemble' ? state.customSettings.ensemble : state.customSettings.individual;
+    return { danceSteps: settings.danceSteps, dynamicChanges: settings.dynamicChanges };
+  }
+  return { danceSteps: 2, dynamicChanges: state.discipline === 'ensemble' ? 4 : 2 };
 }
 
 function getScore() {
@@ -221,7 +249,7 @@ function getScore() {
   const countedDb = [...validDbEntries].sort((a, b) => b.value - a.value).slice(0, limits.db);
   const risksInChronologicalOrder = state.entries.filter((entry) => entry.category === 'risks');
   const countedRisks = risksInChronologicalOrder.slice(0, limits.risks);
-  const minimumPerGroup = state.level === 'settings' ? getLimits().minDbPerGroup : 1;
+  const minimumPerGroup = state.level === 'personalized' ? getLimits().minDbPerGroup : 1;
   const missingGroups = categories
     .filter((category) => category.id !== 'risks')
     .filter((category) => dbEntries.filter((entry) => entry.category === category.id && entry.value > 0).length < minimumPerGroup).length;
@@ -237,7 +265,7 @@ function getScore() {
 }
 
 function getEnsembleDbScore() {
-  const groupSettings = state.level === 'settings' ? state.customSettings.ensemble : null;
+  const groupSettings = state.level === 'personalized' ? state.customSettings.ensemble : null;
   const minimumDb = groupSettings ? groupSettings.db : state.level === 'senior' ? 4 : 0;
   const minimumDe = groupSettings ? groupSettings.de : 4;
   const maximum = groupSettings ? groupSettings.maxCollaborations : state.level === 'senior' ? 9 : 10;
@@ -249,6 +277,7 @@ function getEnsembleDbScore() {
   const countedDb = countedRoutine.filter((entry) => dbCategories.includes(entry.category));
   const countedDe = countedRoutine.filter((entry) => entry.category === 'de');
   const countedRisks = risks.slice(0, 1);
+  const risksLimit = groupSettings ? groupSettings.risks : 1;
   const minimumPerGroup = groupSettings ? groupSettings.minDbPerGroup || 1 : 1;
   const missingGroups = ['jumps', 'balances', 'rotations'].filter((group) => dbEntries.filter((entry) => entry.group === group && entry.value > 0).length < minimumPerGroup).length;
   const missingDb = Math.max(0, minimumDb - dbEntries.length) > 0 ? 0.3 : 0;
@@ -263,6 +292,8 @@ function getEnsembleDbScore() {
     countedDe,
     countedRisks,
     totalCounted: countedRoutine.length,
+    maximum,
+    risksLimit,
   };
 }
 
@@ -280,7 +311,7 @@ function getDaScore() {
 }
 
 function getEnsembleDaScore() {
-  const groupSettings = state.level === 'settings' ? state.customSettings.ensemble : null;
+  const groupSettings = state.level === 'personalized' ? state.customSettings.ensemble : null;
   const maximum = groupSettings ? groupSettings.maxCollaborations : state.level === 'senior' ? 14 : 10;
   const minimumPerType = groupSettings ? groupSettings.minPerType : state.level === 'senior' ? 3 : 2;
   const countedDa = state.entries.filter((entry) => ['cc', 'cr', 'multipleThrow', 'multipleCatch'].includes(entry.category) && entry.value > 0).slice(0, maximum);
@@ -312,13 +343,13 @@ function getArtisticDeduction() {
   if (state.interruptionUsed) total += 0.6;
   
   // Missing dance steps penalty
-  const limits = getLimits();
+  const limits = getArtisticLimits();
   if (state.danceSteps < limits.danceSteps) {
     total += (limits.danceSteps - state.danceSteps) * 0.3;
   }
   
   // Missing dynamic changes penalty
-  const requiredDynamicChanges = state.level === 'settings' ? limits.dynamicChanges : state.discipline === 'ensemble' ? 4 : 2;
+  const requiredDynamicChanges = limits.dynamicChanges;
   if (state.dynamicChanges < requiredDynamicChanges) {
     total += (requiredDynamicChanges - state.dynamicChanges) * 0.3;
   }
@@ -368,6 +399,7 @@ function renderArtisticStage1() {
               <div class="score">${format(deduction)}</div>
             </div>
           </div>
+          <div class="artistic-level-controls"><div class="level-switch" aria-label="Competition level"><button class="level-button ${state.level === 'junior' ? 'selected' : ''}" data-level="junior">Junior</button><button class="level-button ${state.level === 'senior' ? 'selected' : ''}" data-level="senior">Senior</button><button class="level-button ${state.level === 'personalized' ? 'selected' : ''}" data-level="personalized">Personalized</button></div>${state.level === 'personalized' ? `<button class="settings-link" data-action="open-settings">Settings <span>→</span></button>` : ''}</div>
           <div class="artistic-stage1-panel">
             <div class="penalty-button-grid">
               <div class="penalty-group">
@@ -479,6 +511,7 @@ function renderArtisticStage2() {
               <div class="score">${format(deduction)}</div>
             </div>
           </div>
+          <div class="artistic-level-controls"><div class="level-switch" aria-label="Competition level"><button class="level-button ${state.level === 'junior' ? 'selected' : ''}" data-level="junior">Junior</button><button class="level-button ${state.level === 'senior' ? 'selected' : ''}" data-level="senior">Senior</button><button class="level-button ${state.level === 'personalized' ? 'selected' : ''}" data-level="personalized">Personalized</button></div>${state.level === 'personalized' ? `<button class="settings-link" data-action="open-settings">Settings <span>→</span></button>` : ''}</div>
           <div class="artistic-stage2-panel">
             ${(state.discipline === 'ensemble' ? ensembleArtisticPenalties : artisticPenalties).map(penalty => `
               <div class="penalty-row">
@@ -593,14 +626,15 @@ function render() {
             <div class="level-switch" aria-label="Competition level">
               <button class="level-button ${state.level === 'junior' ? 'selected' : ''}" data-level="junior">Junior</button>
               <button class="level-button ${state.level === 'senior' ? 'selected' : ''}" data-level="senior">Senior</button>
-              <button class="level-button ${state.level === 'settings' ? 'selected' : ''}" data-level="settings">Settings</button>
+              <button class="level-button ${state.level === 'personalized' ? 'selected' : ''}" data-level="personalized">Personalized</button>
+              ${state.level === 'personalized' ? `<button class="level-button" data-action="open-settings">Settings</button>` : ''}
             </div>
           </div>
 
           <div class="score-stage">
             <div class="score-label">CURRENT SCORE <span class="score-line"></span></div>
             <div class="score ${state.validated ? 'validated-score' : ''}">${format(displayScore)}</div>
-            ${state.mode === 'da' ? `<div class="score-breakdown"><span>DA TOTAL <b>${format(daScore.da)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(state.discipline === 'ensemble' ? daScore.penalty : daScore.floorPenalty)}</b></span></div><div class="capacity-note">${daScore.countedDa.length}/${state.discipline === 'ensemble' ? daScore.maximum : limits.da} DA COUNTED</div>` : `<div class="score-breakdown"><span>DB <b>${format(score.db)}</b></span>${state.discipline === 'ensemble' ? `<span class="break-divider">+</span><span>DE <b>${format(score.de)}</b></span>` : ''}<span class="break-divider">+</span><span>R <b>${format(score.risks)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(score.penalty)}</b></span></div><div class="capacity-note">${state.discipline === 'ensemble' ? `${score.totalCounted}/${state.level === 'settings' ? state.customSettings.ensemble.maxCollaborations : 9} DB + DE counted · ${score.countedRisks.length}/${state.level === 'settings' ? state.customSettings.ensemble.risks : 1} R counted` : `${score.countedDb.length}/${limits.db} DB · ${score.countedRisks.length}/${limits.risks} R counted`}</div>`}
+            ${state.mode === 'da' ? `<div class="score-breakdown"><span>DA TOTAL <b>${format(daScore.da)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(state.discipline === 'ensemble' ? daScore.penalty : daScore.floorPenalty)}</b></span></div><div class="capacity-note">${daScore.countedDa.length}/${state.discipline === 'ensemble' ? daScore.maximum : limits.da} DA COUNTED</div>` : `<div class="score-breakdown"><span>DB <b>${format(score.db)}</b></span>${state.discipline === 'ensemble' ? `<span class="break-divider">+</span><span>DE <b>${format(score.de)}</b></span>` : ''}<span class="break-divider">+</span><span>R <b>${format(score.risks)}</b></span><span class="break-divider">−</span><span>PENALTY <b class="penalty-value">${format(score.penalty)}</b></span></div><div class="capacity-note">${state.discipline === 'ensemble' ? `${score.totalCounted}/${score.maximum} DB + DE counted · ${score.countedRisks.length}/${score.risksLimit} R counted` : `${score.countedDb.length}/${limits.db} DB · ${score.countedRisks.length}/${limits.risks} R counted`}</div>`}
           </div>
           <div class="input-panel">
             <div class="panel-topline"><span>SELECT ${panelType} VALUE</span><span class="value-range">0.0 <span class="range-line"></span> ${valueMaximum}</span></div>
@@ -645,7 +679,8 @@ function render() {
     switchTab(button.dataset.mode);
     render();
   }));
-  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; state.mode = button.dataset.level === 'settings' ? 'settings' : state.mode === 'settings' ? 'db' : state.mode; render(); }));
+  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; state.mode = state.mode === 'settings' ? 'db' : state.mode; state.settingsOpen = false; render(); }));
+  app.querySelector('[data-action="open-settings"]')?.addEventListener('click', () => { state.settingsReturnMode = state.mode; state.settingsOpen = true; state.mode = 'settings'; renderSettings(); });
   app.querySelectorAll('[data-value]').forEach((button) => button.addEventListener('click', () => {
     const category = state.mode === 'da' && state.discipline === 'ensemble' ? state.category : state.mode === 'da' ? 'da' : (navCategories.find((item) => item.id === state.category)?.entryCategory || state.category);
     state.entries.push({ category, value: Number(button.dataset.value), acrobatic: false, group: activeCategory.group });
@@ -661,6 +696,8 @@ function render() {
 
 function attachArtisticEventListeners() {
   app.querySelector('[data-action="show-score-summary"]')?.addEventListener('click', () => { showOverallScore(); render(); });
+  app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { state.level = button.dataset.level; render(); }));
+  app.querySelector('[data-action="open-settings"]')?.addEventListener('click', () => { state.settingsReturnMode = 'artistic'; state.settingsOpen = true; state.mode = 'settings'; renderSettings(); });
   // Mode switch
   app.querySelectorAll('[data-mode]').forEach((button) => button.addEventListener('click', () => { 
     switchTab(button.dataset.mode);

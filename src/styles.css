@@ -101,6 +101,7 @@ h1, h2 { margin: 0; font-weight: 700; letter-spacing: -.045em; } h1 { font-size:
 
 /* Artistic Difficulty Styles */
 .artistic-content { display: flex; flex-direction: column; }
+.artistic-level-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: -22px 0 28px; }.settings-link { border: 1px solid var(--blue); color: var(--blue); background: rgba(159,203,213,.08); padding: 9px 13px; cursor: pointer; font: 700 11px 'DM Mono', monospace; }.settings-link:hover { color: var(--deep); background: var(--blue); }.settings-link span { padding-left: 8px; color: var(--coral); }
 .artistic-header { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: flex-start; margin-bottom: 40px; }
 .artistic-score-display { background: rgba(20, 49, 41, .76); border: 1px solid var(--line); padding: 16px 20px; text-align: center; flex-shrink: 0; }
 .artistic-score-display .score-label { color: var(--muted); letter-spacing: .18em; font-size: 9px; font-weight: 700; margin-bottom: 8px; white-space: nowrap; }
@@ -180,6 +181,7 @@ h1, h2 { margin: 0; font-weight: 700; letter-spacing: -.045em; } h1 { font-size:
 }
 
 @media (max-width: 760px) {
+  .artistic-level-controls { align-items: stretch; flex-direction: column; margin: -8px 0 25px; }.artistic-level-controls .level-switch, .settings-link { width: 100%; }.artistic-level-controls .level-button { flex: 1; }
   .settings-content .content-head { gap: 18px; }
   .settings-intro { margin-top: 14px; }
   .settings-grid { grid-template-columns: 1fr; }
