@@ -273,3 +273,5 @@ em { font-style: normal; }
 .settings-grid input { padding: 12px; font-size: 20px; font-weight: 800; color: var(--ink); background: var(--panel-2); border: 2px solid var(--line); border-radius: 14px; }
 .settings-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .settings-actions .foot-btn { min-width: 140px; min-height: 52px; }
+.dot.step[data-act] { cursor: pointer; }
+.dot.invalid { opacity: .35; text-decoration: line-through; outline: 2px dashed #888; outline-offset: 1px; }

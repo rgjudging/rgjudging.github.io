@@ -17,15 +17,19 @@ function analyse(entries) {
   let withParts = 0;
   let withoutParts = 0;
 
-  entries.forEach((entry) => {
+  entries.forEach((entry, idx) => {
+    if (entry.invalid) {
+      units.push({ invalid: true, items: [{ kind: 'with', step: true, dur: entry.dur, idx }] });
+      return;
+    }
     if (entry.t === 'step' && entry.dur >= 8) {
       flush();
-      units.push({ part: true, kind: 'with', items: [{ kind: 'with', step: true, dur: entry.dur }] });
+      units.push({ part: true, kind: 'with', items: [{ kind: 'with', step: true, dur: entry.dur, idx }] });
       withParts += 1;
       return;
     }
     const current = entry.t === 'without' ? 'without' : 'with';
-    const item = { kind: current, step: entry.t === 'step', dur: entry.dur };
+    const item = { kind: current, step: entry.t === 'step', dur: entry.dur, idx };
     if (kind !== current) { flush(); kind = current; }
     pending.push(item);
     if (pending.length === 3) {
@@ -46,7 +50,7 @@ function compute(s, r) {
   let character = withParts < 4 ? 10 : !majority ? 6 : withoutParts === 0 ? 0 : 3;
   if (!s.variety) character = Math.max(character, 6);
 
-  const steps = s.entries.filter((entry) => entry.t === 'step').length;
+  const steps = s.entries.filter((entry) => entry.t === 'step' && entry.dur >= 8 && !entry.invalid).length;
   const requiredSteps = limitsFor(r).danceSteps;
   const requiredDynamics = limitsFor(r).dynamics;
   const rhythm = Math.min(20, s.rhythm);
@@ -71,8 +75,8 @@ function compute(s, r) {
 }
 
 function history(units) {
-  const dot = (item) => `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''}">${item.step && item.dur >= 8 ? `${Math.round(item.dur)}s` : item.step ? 'S' : ''}</i>`;
-  return units.map((unit) => unit.part
+  const dot = (item, dead) => `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''} ${dead ? 'invalid' : ''}" ${item.step ? `data-act="invalidate" data-idx="${item.idx}" title="Click to ${dead ? 'restore' : 'invalidate'}"` : ''}>${item.step && item.dur >= 8 ? `${Math.round(item.dur)}s` : item.step ? 'S' : ''}</i>`;
+  return units.map((unit) => unit.invalid ? dot(unit.items[0], true) : unit.part
     ? `<span class="part ${unit.kind === 'with' ? 'good' : 'bad'}">${unit.items.map(dot).join('')}</span>`
     : dot(unit.items[0])).join('') || '<em class="empty">(empty)</em>';
 }
@@ -95,7 +99,7 @@ function stageOne(s, r) {
         <button class="art bad" data-act="without">WITHOUT CHARACTER</button>
       </div>
       <div class="art-col">
-        <button class="art dark ${s.stepStart ? 'running' : ''}" data-act="step"><span>DANCE STEPS</span><b>${s.entries.filter((e) => e.t === 'step').length}</b><small data-live="step"></small></button>
+        <button class="art dark ${s.stepStart ? 'running' : ''}" data-act="step"><span>DANCE STEPS</span><b>${s.entries.filter((e) => e.t === 'step' && e.dur >= 8 && !e.invalid).length}</b><small data-live="step"></small></button>
         <button class="art dark" data-act="dynamics"><span>DYNAMICS</span><b>${s.dynamics}</b></button>
         <button class="art dark ${s.intStart ? 'running' : ''}" data-act="interruption"><span>INTERRUPTION / LOSS</span><small data-live="int"></small></button>
       </div>
@@ -147,6 +151,7 @@ export default function (r) {
         s.entries.push({ t: 'step', dur: (Date.now() - s.stepStart) / 1000 });
         s.stepStart = null;
       },
+      invalidate: (s, d) => { const e = s.entries[Number(d.idx)]; if (e) e.invalid = !e.invalid; },
       dynamics: (s) => { s.dynamics += 1; },
       interruption: (s) => {
         if (!s.intStart) { s.intStart = Date.now(); return; }
