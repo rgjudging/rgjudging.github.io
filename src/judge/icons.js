@@ -1,3 +1,5 @@
+// Under Vite the icons are served from the public root; when the sources are served as-is (GitHub Pages) they live in /public/.
+const ICON_BASE = import.meta.env ? `${import.meta.env.BASE_URL}icons/` : new URL('../../public/icons/', import.meta.url).href;
 const coilPath = 'M4 32C4 14 13 14 13 32C13 14 22 14 22 32C22 14 31 14 31 32C31 14 40 14 40 32C40 14 44 14 44 32';
 const arrowHead = (x, y, a) => `<path transform="rotate(${a} ${x} ${y})" d="M${x - 11} ${y - 10}L${x} ${y}L${x - 11} ${y + 10}"/>`;
 
@@ -40,7 +42,7 @@ const IMAGES = new Set(['coil', 'circleBar', 'circle', 'throughBar', 'coilBase',
 
 export function icon(key) {
   if (key.includes('+')) return key.split('+').map(icon).join('');
-  if (IMAGES.has(key)) return `<img class="ico img" src="${import.meta.env.BASE_URL}icons/${key}.png" alt="" draggable="false">`;
+  if (IMAGES.has(key)) return `<img class="ico img" src="${ICON_BASE}${key}.png" alt="" draggable="false">`;
   return P[key]
     ? `<svg class="ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[key]}</svg>`
     : key;
