@@ -275,3 +275,8 @@ em { font-style: normal; }
 .settings-actions .foot-btn { min-width: 140px; min-height: 52px; }
 .dot.step[data-act] { cursor: pointer; }
 .dot.invalid { opacity: .35; text-decoration: line-through; outline: 2px dashed #888; outline-offset: 1px; }
+
+.check-top .variety { margin-left: auto; min-height: 72px; padding: 0 28px; font-size: 20px; font-weight: 800; border-radius: 16px; border: 3px solid #f97316; background: #f97316; color: #111; cursor: pointer; }
+.check-top .variety::after { content: ' — OFF · min −0.6'; font-size: 13px; font-weight: 700; }
+.check-top .variety.on { background: #22c55e; border-color: #22c55e; color: #052e16; }
+.check-top .variety.on::after { content: ' — ON'; }

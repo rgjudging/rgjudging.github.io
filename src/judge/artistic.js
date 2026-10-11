@@ -75,7 +75,7 @@ function compute(s, r) {
 }
 
 function history(units) {
-  const dot = (item, dead) => `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''} ${dead ? 'invalid' : ''}" ${item.step ? `data-act="invalidate" data-idx="${item.idx}" title="Click to ${dead ? 'restore' : 'invalidate'}"` : ''}>${item.step && item.dur >= 8 ? `${Math.round(item.dur)}s` : item.step ? 'S' : ''}</i>`;
+  const dot = (item, dead) => `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''} ${dead ? 'invalid' : ''}" ${item.step ? `data-act="invalidate" data-idx="${item.idx}" title="Click to ${dead ? 'restore' : 'invalidate'}"` : ''}>${item.step ? `${item.dur >= 8 ? Math.round(item.dur) : item.dur.toFixed(1)}s` : ''}</i>`;
   return units.map((unit) => unit.invalid ? dot(unit.items[0], true) : unit.part
     ? `<span class="part ${unit.kind === 'with' ? 'good' : 'bad'}">${unit.items.map(dot).join('')}</span>`
     : dot(unit.items[0])).join('') || '<em class="empty">(empty)</em>';
