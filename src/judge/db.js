@@ -1,0 +1,90 @@
+import { mount, footer, range, t, uid } from './core.js';
+
+const TABS = {
+  jumps: { label: 'Λ', chip: 'Λ', color: '#4c9aff', values: range(1, 8) },
+  balances: { label: '⊤', chip: '⊤', color: '#ff9f1c', values: range(1, 8) },
+  rotations: { label: '⫰', chip: '⫰', color: '#ff5fa2', values: range(1, 8) },
+  risks: { label: 'R', chip: 'R', color: '#19c37d', values: range(1, 13) },
+  de: { label: 'DE', chip: 'DE', color: '#2dd4bf', values: range(1, 13) },
+};
+const ORDER = { individual: ['jumps', 'balances', 'rotations', 'risks'], ensemble: ['jumps', 'balances', 'rotations', 'risks', 'de'] };
+
+const LIMITS = {
+  individual: { junior: { db: 6, risks: 3 }, senior: { db: 8, risks: 4 } },
+  ensemble: { junior: { routine: 10, minDb: 0 }, senior: { routine: 9, minDb: 4 } },
+};
+const GROUPS = ['jumps', 'balances', 'rotations'];
+const GROUP_NAMES = { jumps: 'Jumps', balances: 'Balances', rotations: 'Rotations' };
+
+const entryValue = (entry) => entry.value + (entry.extra || 0);
+
+function score(s, r) {
+  const valid = s.entries.filter((entry) => entry.valid);
+  const missing = GROUPS.filter((group) => !valid.some((entry) => entry.cat === group));
+  const notes = missing.map((group) => `Missing ${GROUP_NAMES[group]} −0.3`);
+  let penalty = missing.length * 3;
+  let counted;
+  let total;
+
+  if (r.discipline === 'individual') {
+    const limits = LIMITS.individual[r.level];
+    const db = valid.filter((entry) => entry.cat !== 'risks').sort((a, b) => entryValue(b) - entryValue(a)).slice(0, limits.db);
+    const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, limits.risks);
+    counted = new Set([...db, ...risks].map((entry) => entry.id));
+    total = [...db, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
+    return { total: Math.max(0, total - penalty), counted, notes, headline: `DB ${db.length}/${limits.db} · R ${risks.length}/${limits.risks}` };
+  }
+
+  const limits = LIMITS.ensemble[r.level];
+  const routine = valid.filter((entry) => entry.cat !== 'risks').slice(0, limits.routine);
+  const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, 1);
+  const dbCount = valid.filter((entry) => !['risks', 'de'].includes(entry.cat)).length;
+  const deCount = valid.filter((entry) => entry.cat === 'de').length;
+  if (dbCount < limits.minDb) { penalty += 3; notes.push('Not enough DB −0.3'); }
+  if (deCount < 4) { penalty += 3; notes.push('Fewer than 4 DE −0.3'); }
+  counted = new Set([...routine, ...risks].map((entry) => entry.id));
+  total = [...routine, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
+  return { total: Math.max(0, total - penalty), counted, notes, headline: `DB+DE ${routine.length}/${limits.routine} · R ${risks.length}/1` };
+}
+
+function view(s, r) {
+  const order = ORDER[r.discipline];
+  const tab = order.includes(s.tab) ? s.tab : order[0];
+  const config = TABS[tab];
+  const result = score(s, r);
+  const columns = config.values.length > 8 ? 5 : 4;
+  const chips = s.entries.map((entry) => {
+    const classes = ['chip', entry.valid ? '' : 'off', result.counted.has(entry.id) || !entry.valid ? '' : 'dim'].join(' ');
+    return `<button class="${classes}" style="--c:${TABS[entry.cat].color}" data-act="toggle" data-id="${entry.id}" title="Tap to ${entry.valid ? 'invalidate' : 'restore'}"><span>${TABS[entry.cat].chip}</span>${t(entryValue(entry))}</button>`;
+  }).join('');
+
+  return `
+    <section class="hist">
+      <div class="hist-head"><span>HISTORY · ${result.headline}</span><strong class="total-inline">TOTAL: ${t(result.total)}</strong></div>
+      <div class="chips">${chips || '<em class="empty">No elements</em>'}</div>
+    </section>
+    <nav class="tabs" style="--n:${order.length}">${order.map((id) => {
+      const count = id === 'risks' ? ` <small>${s.entries.filter((e) => e.cat === 'risks' && e.valid).length}</small>` : '';
+      return `<button class="tab ${id === tab ? 'active' : ''}" data-tab="${id}" style="--c:${TABS[id].color}" data-act="tab" data-id="${id}">${TABS[id].label}${count}</button>`;
+    }).join('')}</nav>
+    <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
+    ${tab === 'rotations' ? `<section class="extras"><button class="tile small" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
+    ${footer((s.undo || []).length > 0, `<div class="foot-note">${result.notes.join(' · ') || 'No penalty'}</div><div class="foot-total"><small>TOTAL</small><strong>${t(result.total)}</strong></div>`)}`;
+}
+
+export default function (r) {
+  mount(r, {
+    initial: { tab: 'jumps', entries: [], undo: [] },
+    view,
+    actions: {
+      tab: (s, d) => { s.tab = d.id; return false; },
+      add: (s, d) => { s.entries.push({ id: uid(), cat: s.tab, value: Number(d.v), extra: 0, valid: true }); },
+      extra: (s, d) => {
+        const last = [...s.entries].reverse().find((entry) => entry.cat === 'rotations' && entry.valid);
+        if (!last) return false;
+        last.extra = (last.extra || 0) + Number(d.v);
+      },
+      toggle: (s, d) => { const entry = s.entries.find((item) => item.id === d.id); if (entry) entry.valid = !entry.valid; },
+    },
+  });
+}
