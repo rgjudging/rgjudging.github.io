@@ -1,5 +1,6 @@
 import { mount, footer, range, t, uid } from './core.js';
 import { icon } from './icons.js';
+import { limitsFor } from './settings.js';
 
 const BASES = {
   rope: { 2: ['circle', 'rings', 'arrowUR', 'x', 'dotLine', 'dotLineArrow', 'barDotArrow', 'arrowR'], 3: ['zigzag', 'arch', 'loopArrow', 'arrowD', 'throughBar'] },
@@ -8,7 +9,7 @@ const BASES = {
   clubs: { 2: ['ringsBig', 'lineDots', 'rings', 'arrowR', 'arrowUR'], 3: ['coil', 'catchDown', 'x', 'arrowRR', 'arrowURR', 'arrowDD', 'arrowD'] },
   ribbon: { 2: ['arrowUR', 'rings', 'throughBar', 'arrowR', 'loopArrow'], 3: ['snake', 'coil', 'spiralSingle+spiralDouble', 'zigzagV', 'curveArrow', 'arrowD'], 4: ['snake'] },
 };
-const LIMIT = { junior: 12, senior: 15 };
+
 
 const ENSEMBLE_TABS = [
   { id: 'cc', label: 'CC', color: '#4c9aff' },
@@ -16,14 +17,15 @@ const ENSEMBLE_TABS = [
   { id: 'multipleCatch', label: 'C↓', color: '#ff5fa2' },
   { id: 'cr', label: 'CR', color: '#19c37d' },
 ];
-const ENSEMBLE_LIMITS = { junior: { maximum: 10, minimum: 2 }, senior: { maximum: 14, minimum: 3 } };
+
 
 const entryTotal = (entry) => entry.value + (entry.combi ? 1 : 0);
 
 function individualView(s, r) {
   const bases = BASES[r.apparatus];
   const valid = s.entries.filter((entry) => entry.valid);
-  const counted = valid.slice(0, LIMIT[r.level]);
+  const limit = limitsFor(r).da;
+  const counted = valid.slice(0, limit);
   const countedIds = new Set(counted.map((entry) => entry.id));
   const total = counted.reduce((sum, entry) => sum + entryTotal(entry), 0);
   const last = [...valid].pop();
@@ -35,7 +37,7 @@ function individualView(s, r) {
 
   return `
     <section class="hist">
-      <div class="hist-head"><span>MY TIMELINE</span><span>${counted.length} / ${LIMIT[r.level]}</span></div>
+      <div class="hist-head"><span>MY TIMELINE</span><span>${counted.length} / ${limit}</span></div>
       <div class="chips">${chips || '<em class="empty">Add elements…</em>'}</div>
     </section>
     <section class="da-board">${panels}<button class="tile combi" data-act="combi" ${last && !last.combi ? '' : 'disabled'}><b>+0.1</b><small>COMBI</small></button></section>
@@ -43,7 +45,8 @@ function individualView(s, r) {
 }
 
 function ensembleScore(s, r) {
-  const limits = ENSEMBLE_LIMITS[r.level];
+  const { maxCollab, minPerType } = limitsFor(r);
+  const limits = { maximum: maxCollab, minimum: minPerType };
   const counted = s.entries.filter((entry) => entry.valid && entry.value > 0).slice(0, limits.maximum);
   const countedIds = new Set(counted.map((entry) => entry.id));
   const count = (ids) => counted.filter((entry) => ids.includes(entry.cat)).length;

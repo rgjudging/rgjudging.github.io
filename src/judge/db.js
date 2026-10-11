@@ -1,4 +1,5 @@
 import { mount, footer, range, t, uid } from './core.js';
+import { limitsFor } from './settings.js';
 
 const TABS = {
   jumps: { label: 'Λ', chip: 'Λ', color: '#4c9aff', values: range(1, 8) },
@@ -9,10 +10,6 @@ const TABS = {
 };
 const ORDER = { individual: ['jumps', 'balances', 'rotations', 'risks'], ensemble: ['jumps', 'balances', 'rotations', 'risks', 'de'] };
 
-const LIMITS = {
-  individual: { junior: { db: 6, risks: 3 }, senior: { db: 8, risks: 4 } },
-  ensemble: { junior: { routine: 10, minDb: 0 }, senior: { routine: 9, minDb: 4 } },
-};
 const GROUPS = ['jumps', 'balances', 'rotations'];
 const GROUP_NAMES = { jumps: 'Jumps', balances: 'Balances', rotations: 'Rotations' };
 
@@ -20,14 +17,14 @@ const entryValue = (entry) => entry.value + (entry.extra || 0);
 
 function score(s, r) {
   const valid = s.entries.filter((entry) => entry.valid);
-  const missing = GROUPS.filter((group) => !valid.some((entry) => entry.cat === group));
-  const notes = missing.map((group) => `Missing ${GROUP_NAMES[group]} −0.3`);
+  const limits = limitsFor(r);
+  const missing = GROUPS.filter((group) => valid.filter((entry) => entry.cat === group).length < limits.minDbPerGroup);
+  const notes = missing.map((group) => (limits.minDbPerGroup > 1 ? `${GROUP_NAMES[group]} under ${limits.minDbPerGroup} −0.3` : `Missing ${GROUP_NAMES[group]} −0.3`));
   let penalty = missing.length * 3;
   let counted;
   let total;
 
   if (r.discipline === 'individual') {
-    const limits = LIMITS.individual[r.level];
     const db = valid.filter((entry) => entry.cat !== 'risks').sort((a, b) => entryValue(b) - entryValue(a)).slice(0, limits.db);
     const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, limits.risks);
     counted = new Set([...db, ...risks].map((entry) => entry.id));
@@ -35,16 +32,15 @@ function score(s, r) {
     return { total: Math.max(0, total - penalty), counted, notes, headline: `DB ${db.length}/${limits.db} · R ${risks.length}/${limits.risks}` };
   }
 
-  const limits = LIMITS.ensemble[r.level];
   const routine = valid.filter((entry) => entry.cat !== 'risks').slice(0, limits.routine);
-  const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, 1);
+  const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, limits.risks);
   const dbCount = valid.filter((entry) => !['risks', 'de'].includes(entry.cat)).length;
   const deCount = valid.filter((entry) => entry.cat === 'de').length;
-  if (dbCount < limits.minDb) { penalty += 3; notes.push('Not enough DB −0.3'); }
-  if (deCount < 4) { penalty += 3; notes.push('Fewer than 4 DE −0.3'); }
+  if (dbCount < limits.db) { penalty += 3; notes.push('Not enough DB −0.3'); }
+  if (deCount < limits.de) { penalty += 3; notes.push(`Fewer than ${limits.de} DE −0.3`); }
   counted = new Set([...routine, ...risks].map((entry) => entry.id));
   total = [...routine, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
-  return { total: Math.max(0, total - penalty), counted, notes, headline: `DB+DE ${routine.length}/${limits.routine} · R ${risks.length}/1` };
+  return { total: Math.max(0, total - penalty), counted, notes, headline: `DB+DE ${routine.length}/${limits.routine} · R ${risks.length}/${limits.risks}` };
 }
 
 function view(s, r) {

@@ -262,3 +262,14 @@ em { font-style: normal; }
 .collective .mini.on { outline: 4px solid #fff; outline-offset: -4px; }
 .collective .mini.on::after { content: " ✓"; }
 .collective .mini { font-size: clamp(14px, 1.6vw, 22px); }
+
+/* Custom settings page */
+.settings { max-width: 760px; }
+.settings-form { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.settings-block { background: var(--panel); border: 2px solid var(--line); border-radius: 20px; padding: 14px 16px; }
+.settings-block h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.settings-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.settings-grid input { padding: 12px; font-size: 20px; font-weight: 800; color: var(--ink); background: var(--panel-2); border: 2px solid var(--line); border-radius: 14px; }
+.settings-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.settings-actions .foot-btn { min-width: 140px; min-height: 52px; }

@@ -1,11 +1,12 @@
 import { mount, clock } from './core.js';
+import { limitsFor } from './settings.js';
 
-const LIMITS = { individual: { min: 75, max: 90 }, ensemble: { min: 135, max: 150 } };
+const timeLimits = (r) => { const l = limitsFor(r); return { min: l.timeMin, max: l.timeMax }; };
 const elapsed = (timer) => timer.acc + (timer.start ? Date.now() - timer.start : 0);
 const mmss = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
 function penalties(s, r) {
-  const limits = LIMITS[r.discipline];
+  const limits = timeLimits(r);
   const prepMs = elapsed(s.prep);
   const perfMs = elapsed(s.perf);
   const seconds = Math.floor(perfMs / 1000);
@@ -42,7 +43,7 @@ function panel(s, id, title, hint) {
 }
 
 export default function (r) {
-  const limits = LIMITS[r.discipline];
+  const limits = timeLimits(r);
   mount(r, {
     initial: { prep: { acc: 0, start: null }, perf: { acc: 0, start: null }, undo: [] },
     view: (s) => `

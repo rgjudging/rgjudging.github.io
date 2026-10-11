@@ -1,4 +1,5 @@
 import { mount, t, t2 } from './core.js';
+import { limitsFor } from './settings.js';
 
 const SINGLES = [
   ['body', 'BODY', [3, 6]], ['face', 'FACE', [3]], ['space', 'SPACE', [3]],
@@ -46,8 +47,8 @@ function compute(s, r) {
   if (!s.variety) character = Math.max(character, 6);
 
   const steps = s.entries.filter((entry) => entry.t === 'step').length;
-  const requiredSteps = 2;
-  const requiredDynamics = group ? 4 : 2;
+  const requiredSteps = limitsFor(r).danceSteps;
+  const requiredDynamics = limitsFor(r).dynamics;
   const rhythm = Math.min(20, s.rhythm);
   const connections = Math.min(20, s.connections);
   const singles = Object.values(s.singles).reduce((sum, value) => sum + value, 0);

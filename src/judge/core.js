@@ -35,7 +35,7 @@ export function route() {
     mode,
     simple: variant === 'simple' && SIMPLE_MODES.includes(mode),
     discipline: safeDiscipline,
-    level: level === 'senior' ? 'senior' : 'junior',
+    level: ['senior', 'custom'].includes(level) ? level : 'junior',
     apparatus: list.some(([id]) => id === apparatus) ? apparatus : list[0][0],
   };
 }
@@ -66,7 +66,8 @@ function shell(r, body) {
       ${select('mode', MODES, r.mode)}
       ${select('discipline', [['individual', 'Individual'], ['ensemble', 'Group']], r.discipline)}
       ${select('apparatus', APPARATUS[r.discipline], r.apparatus)}
-      ${select('level', [['junior', 'Juniors'], ['senior', 'Seniors']], r.level)}
+      ${select('level', [['junior', 'Juniors'], ['senior', 'Seniors'], ['custom', 'Custom']], r.level)}
+      ${r.level === 'custom' ? `<a class="bar-menu" href="#/settings/${r.discipline}">⚙</a>` : ''}
       ${SIMPLE_MODES.includes(r.mode) ? select('simple', [['', 'Standard'], ['simple', 'Simple']], r.simple ? 'simple' : '') : ''}
     </header>
     ${body}
