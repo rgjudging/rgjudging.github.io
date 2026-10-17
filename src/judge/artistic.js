@@ -101,7 +101,7 @@ function stageOne(s, r) {
       <div class="art-col">
         <button class="art dark ${s.stepStart ? 'running' : ''}" data-act="step"><span>DANCE STEPS</span><b>${s.entries.filter((e) => e.t === 'step' && e.dur >= 8 && !e.invalid).length}</b><small data-live="step"></small></button>
         <button class="art dark" data-act="dynamics"><span>DYNAMICS</span><b>${s.dynamics}</b></button>
-        <button class="art dark ${s.intStart ? 'running' : ''}" data-act="interruption"><span>INTERRUPTION / LOSS</span><small data-live="int"></small></button>
+        <button class="art dark ${s.intStart ? 'running' : ''}" data-act="interruption"><span>INTERRUPTION / LOSS${s.longInterruption ? ' ✓' : ''}</span>${s.longInterruption ? '<small>−0.6 taken</small>' : ''}<small data-live="int"></small></button>
       </div>
       <div class="art-col">
         <button class="art bad" data-act="connections"><span>CONNECTIONS</span><b>${t(Math.min(20, s.connections))}</b></button>
@@ -157,8 +157,8 @@ export default function (r) {
         if (!s.intStart) { s.intStart = Date.now(); return; }
         const seconds = (Date.now() - s.intStart) / 1000;
         s.intStart = null;
-        if (seconds < 4) s.rhythm += Math.max(1, Math.ceil(seconds));
-        else if (seconds > 8) s.longInterruption = true;
+        if (s.longInterruption || seconds < 4) s.rhythm += Math.max(1, Math.ceil(seconds));
+        else s.longInterruption = true;
       },
       connections: (s) => { s.connections = Math.min(20, s.connections + 1); },
       rhythm: (s) => { s.rhythm = Math.min(20, s.rhythm + 1); },

@@ -25,7 +25,8 @@ function individualView(s, r) {
   const bases = BASES[r.apparatus];
   const valid = s.entries.filter((entry) => entry.valid);
   const limit = limitsFor(r).da;
-  const counted = valid.slice(0, limit);
+  const counted = s.entries.slice(0, limit).filter((entry) => entry.valid);
+  const overflow = s.entries.slice(limit).filter((entry) => entry.valid).length;
   const countedIds = new Set(counted.map((entry) => entry.id));
   const total = counted.reduce((sum, entry) => sum + entryTotal(entry), 0);
   const last = [...valid].pop();
@@ -41,13 +42,13 @@ function individualView(s, r) {
       <div class="chips">${chips || '<em class="empty">Add elements…</em>'}</div>
     </section>
     <section class="da-board">${panels}<button class="tile combi" data-act="combi" ${last && !last.combi ? '' : 'disabled'}><b>+0.1</b><small>COMBI</small></button></section>
-    ${footer((s.undo || []).length > 0, `<div class="foot-note">${valid.length > counted.length ? `${valid.length - counted.length} over the limit, not counted` : ''}</div><div class="foot-total"><small>TOTAL</small><strong>${t(total)}</strong></div>`)}`;
+    ${footer((s.undo || []).length > 0, `<div class="foot-note">${overflow ? `${overflow} over the limit, not counted` : ''}</div><div class="foot-total"><small>TOTAL</small><strong>${t(total)}</strong></div>`)}`;
 }
 
 function ensembleScore(s, r) {
   const { maxCollab, minPerType } = limitsFor(r);
   const limits = { maximum: maxCollab, minimum: minPerType };
-  const counted = s.entries.filter((entry) => entry.valid && entry.value > 0).slice(0, limits.maximum);
+  const counted = s.entries.filter((entry) => entry.value > 0).slice(0, limits.maximum).filter((entry) => entry.valid);
   const countedIds = new Set(counted.map((entry) => entry.id));
   const count = (ids) => counted.filter((entry) => ids.includes(entry.cat)).length;
   const types = { CC: count(['cc']), CR: count(['cr']), Multiple: count(['multipleThrow', 'multipleCatch']) };

@@ -26,14 +26,14 @@ function score(s, r) {
 
   if (r.discipline === 'individual') {
     const db = valid.filter((entry) => entry.cat !== 'risks').sort((a, b) => entryValue(b) - entryValue(a)).slice(0, limits.db);
-    const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, limits.risks);
+    const risks = s.entries.filter((entry) => entry.cat === 'risks').slice(0, limits.risks).filter((entry) => entry.valid);
     counted = new Set([...db, ...risks].map((entry) => entry.id));
     total = [...db, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
     return { total: Math.max(0, total - penalty), counted, notes, headline: `DB ${db.length}/${limits.db} · R ${risks.length}/${limits.risks}` };
   }
 
   const routine = valid.filter((entry) => entry.cat !== 'risks').slice(0, limits.routine);
-  const risks = valid.filter((entry) => entry.cat === 'risks').slice(0, limits.risks);
+  const risks = s.entries.filter((entry) => entry.cat === 'risks').slice(0, limits.risks).filter((entry) => entry.valid);
   const dbCount = valid.filter((entry) => !['risks', 'de'].includes(entry.cat)).length;
   const deCount = valid.filter((entry) => entry.cat === 'de').length;
   if (dbCount < limits.db) { penalty += 3; notes.push('Not enough DB −0.3'); }
