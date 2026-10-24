@@ -2,7 +2,7 @@ import { mount, footer, range, t, uid } from './core.js';
 import { icon } from './icons.js';
 import { limitsFor } from './settings.js';
 
-const BASES = {
+export const BASES = {
   rope: { 2: ['circle', 'rings', 'arrowUR', 'x', 'dotLine', 'dotLineArrow', 'barDotArrow', 'arrowR'], 3: ['zigzag', 'arch', 'loopArrow', 'arrowD', 'throughBar'] },
   hoop: { 2: ['coilBase', 'circle', 'hoopBase', 'rings', 'throughBar', 'arrowR', 'arrowUR'], 3: ['coil', 'circleSlash', 'circleBar', 'arrowD'] },
   ball: { 2: ['vee', 'rings', 'arrowR', 'arrowUR'], 3: ['catchDown', 'bounceArrow', 'coil', 'arrowD'] },
@@ -21,6 +21,13 @@ const ENSEMBLE_TABS = [
 
 const entryTotal = (entry) => entry.value + (entry.combi ? 1 : 0);
 
+export function basePanels(bases, action) {
+  return Object.entries(bases).map(([tenths, glyphs]) => {
+    const columns = glyphs.length > 1 ? 2 : 1;
+    return `<div class="da-panel" style="flex:${columns}"><label>0.${tenths}</label><div class="da-grid" style="--cols:${columns}">${glyphs.map((glyph, index) => `<button class="tile glyph" data-act="${action}" data-v="${tenths}" data-g="${glyph}" aria-label="Choose DA base ${index + 1}, value ${t(Number(tenths))}">${icon(glyph)}</button>`).join('')}</div></div>`;
+  }).join('');
+}
+
 function individualView(s, r) {
   const bases = BASES[r.apparatus];
   const valid = s.entries.filter((entry) => entry.valid);
@@ -31,10 +38,7 @@ function individualView(s, r) {
   const total = counted.reduce((sum, entry) => sum + entryTotal(entry), 0);
   const last = [...valid].pop();
   const chips = s.entries.map((entry) => `<button class="chip ${entry.valid ? '' : 'off'} ${countedIds.has(entry.id) || !entry.valid ? '' : 'dim'}" style="--c:#a78bfa" data-act="toggle" data-id="${entry.id}"><span>${icon(entry.glyph)}</span>${t(entryTotal(entry))}</button>`).join('');
-  const panels = Object.entries(bases).map(([tenths, glyphs]) => {
-    const columns = glyphs.length > 1 ? 2 : 1;
-    return `<div class="da-panel" style="flex:${columns}"><label>0.${tenths}</label><div class="da-grid" style="--cols:${columns}">${glyphs.map((glyph) => `<button class="tile glyph" data-act="add" data-v="${tenths}" data-g="${glyph}">${icon(glyph)}</button>`).join('')}</div></div>`;
-  }).join('');
+  const panels = basePanels(bases, 'add');
 
   return `
     <section class="hist">

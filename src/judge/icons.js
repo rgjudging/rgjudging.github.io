@@ -9,6 +9,7 @@ const P = {
   circle: '<circle cx="24" cy="24" r="14"/>',
   circleBar: '<circle cx="24" cy="24" r="14"/><path d="M10 24H38"/>',
   hoopBase: '<circle cx="24" cy="22" r="14"/><path d="M24 8V36M8 36H40"/>',
+  pivot: '<path d="M24 5V30"/><circle cx="24" cy="37" r="7"/>',
   rings: '<circle cx="17" cy="24" r="11"/><circle cx="31" cy="24" r="11"/>',
   ringsBig: '<circle cx="19" cy="24" r="15"/><circle cx="29" cy="24" r="15"/>',
   throughBar: '<path d="M4 24H17M31 24H44"/><circle cx="24" cy="24" r="7"/>',

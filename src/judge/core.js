@@ -8,6 +8,7 @@ export const MODES = [
 ];
 
 export const SIMPLE_MODES = ['db', 'da', 'artistic', 'execution'];
+export const EXPERT_MODES = ['db', 'da', 'execution'];
 
 export const APPARATUS = {
   individual: [['hoop', 'Hoop'], ['ball', 'Ball'], ['clubs', 'Clubs'], ['ribbon', 'Ribbon'], ['rope', 'Rope']],
@@ -15,7 +16,6 @@ export const APPARATUS = {
 };
 
 export const t = (tenths) => (tenths / 10).toFixed(1);
-export const t2 = (tenths) => (tenths / 10).toFixed(2);
 export const range = (from, to) => Array.from({ length: to - from + 1 }, (_, index) => from + index);
 export const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -34,13 +34,16 @@ export function route() {
   return {
     mode,
     simple: variant === 'simple' && SIMPLE_MODES.includes(mode),
+    expert: variant === 'expert'
+      && EXPERT_MODES.includes(mode)
+      && (mode !== 'da' || safeDiscipline === 'individual'),
     discipline: safeDiscipline,
     level: ['senior', 'custom'].includes(level) ? level : 'junior',
     apparatus: list.some(([id]) => id === apparatus) ? apparatus : list[0][0],
   };
 }
 
-export const routeHref = (r) => `#/${r.mode}/${r.discipline}/${r.level}/${r.apparatus}${r.simple ? '/simple' : ''}`;
+export const routeHref = (r) => `#/${r.mode}/${r.discipline}/${r.level}/${r.apparatus}${r.simple ? '/simple' : r.expert ? '/expert' : ''}`;
 
 export function flash(message) {
   const node = document.createElement('div');
@@ -68,14 +71,18 @@ function shell(r, body) {
       ${select('apparatus', APPARATUS[r.discipline], r.apparatus)}
       ${select('level', [['junior', 'Juniors'], ['senior', 'Seniors'], ['custom', 'Custom']], r.level)}
       ${r.level === 'custom' ? `<a class="bar-menu" href="#/settings/${r.discipline}">⚙</a>` : ''}
-      ${SIMPLE_MODES.includes(r.mode) ? select('simple', [['', 'Standard'], ['simple', 'Simple']], r.simple ? 'simple' : '') : ''}
+      ${SIMPLE_MODES.includes(r.mode) ? select('variant', [
+        ['', 'Standard'],
+        ['simple', 'Simple'],
+        ...(EXPERT_MODES.includes(r.mode) && (r.mode !== 'da' || r.discipline === 'individual') ? [['expert', 'Expert']] : []),
+      ], r.expert ? 'expert' : r.simple ? 'simple' : '') : ''}
     </header>
     ${body}
   </div>`;
 }
 
 export function mount(r, { initial, view, actions = {}, live }) {
-  const key = `rg-judge:${r.mode}${r.simple ? '-simple' : ''}:${r.discipline}:${r.apparatus}`;
+  const key = `rg-judge:${r.mode}${r.simple ? '-simple' : r.expert ? '-expert' : ''}:${r.discipline}:${r.apparatus}`;
   let state;
   try {
     state = { ...structuredClone(initial), ...JSON.parse(localStorage.getItem(key) || '{}') };
@@ -127,7 +134,12 @@ export function mount(r, { initial, view, actions = {}, live }) {
     if (!event.target.dataset.nav) return;
     const next = { ...r };
     root.querySelectorAll('[data-nav]').forEach((node) => { next[node.dataset.nav] = node.value; });
-    next.simple = next.simple === 'simple';
+    next.simple = next.variant === 'simple';
+    next.expert = next.variant === 'expert'
+      && EXPERT_MODES.includes(next.mode)
+      && (next.mode !== 'da' || next.discipline === 'individual');
+    if (!SIMPLE_MODES.includes(next.mode)) next.simple = false;
+    if (!EXPERT_MODES.includes(next.mode)) next.expert = false;
     if (next.discipline !== r.discipline) next.apparatus = APPARATUS[next.discipline][0][0];
     location.hash = routeHref(next);
   });

@@ -1,4 +1,4 @@
-import { mount, footer, t, t2, uid } from './core.js';
+import { mount, footer, t, uid } from './core.js';
 
 const TABS = {
   individual: [['db', 'DB', '#4c9aff'], ['da', 'DA', '#facc15'], ['r', 'R', '#c084fc'], ['s', 'S', '#fb923c']],
@@ -12,7 +12,7 @@ function view(s, r) {
   const tabs = TABS[r.discipline];
   const tab = tabs.some(([id]) => id === s.tab) ? s.tab : tabs[0][0];
   const deduction = sum(s);
-  const chips = s.entries.map((entry) => `<button class="chip ${entry.valid ? '' : 'off'}" style="--c:${entry.loss ? '#ef4444' : '#fb923c'}" data-act="toggle" data-id="${entry.id}"><span>${entry.loss ? 'Loss/Fall' : label(r, entry.tab)}</span>−${t(entry.v)}</button>`).join('');
+  const chips = s.entries.map((entry) => `<button class="chip ${entry.valid ? '' : 'off'}" style="--c:${entry.loss ? '#ef4444' : TABS[r.discipline].find(([id]) => id === entry.tab)?.[2] || '#fb923c'}" data-act="toggle" data-id="${entry.id}"><span>${entry.loss ? 'Loss/Fall' : label(r, entry.tab)}</span>−${t(entry.v)}</button>`).join('');
 
   return `
     <section class="hist">
@@ -22,7 +22,7 @@ function view(s, r) {
     <section class="split split-exec">
       <nav class="side-tabs"><div class="tabcol">${tabs.map(([id, text, color]) => `<button class="tab ${id === tab ? 'active' : ''}" style="--c:${color}" data-act="tab" data-id="${id}">${text}</button>`).join('')}</div></nav>
       <div class="center-col">
-        <div class="total-card"><small>DEDUCTION</small><strong class="warn">${t2(deduction)}</strong><span>Total ${t2(Math.max(0, 100 - deduction))}</span></div>
+        <div class="total-card"><small>DEDUCTION</small><strong class="warn">${t(deduction)}</strong><span>Total ${t(Math.max(0, 100 - deduction))}</span></div>
         <button class="foot-btn primary send-big" data-act="send">Send</button>
         <div class="mini-actions"><button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>↶ Undo</button><button class="foot-btn" data-act="reset">Reset</button></div>
       </div>

@@ -21,7 +21,7 @@ const ROW_COLORS = { db: '#3b82f6', da: '#22c55e', artistic: '#a855f7', executio
 
 function renderHome() {
   const suffix = choice.discipline === 'ensemble' ? 'Group' : 'Individual';
-  const tile = (mode, code, kind) => `<a class="hp-tile" style="--k:${ROW_COLORS[mode]}" href="#/${mode}/${choice.discipline}/${choice.level}${kind === 'simple' ? '/-/simple' : ''}"><b>${code}</b><small>${kind === 'simple' ? 'Simple' : 'Standard'} · ${suffix}</small></a>`;
+  const tile = (mode, code, kind) => `<a class="hp-tile" style="--k:${ROW_COLORS[mode]}" href="#/${mode}/${choice.discipline}/${choice.level}${kind === 'standard' ? '' : `/-/${kind}`}"><b>${code}</b><small>${kind === 'simple' ? 'Simple' : kind === 'expert' ? 'Expert' : 'Standard'} · ${suffix}</small></a>`;
   app.innerHTML = `<main class="hp">
     <header class="hp-head">
       <div><h1>JUDGE PANEL SELECTION</h1><p>Select a mode and open the required panel</p></div>
@@ -32,7 +32,7 @@ function renderHome() {
     </header>
     ${panels.map(([mode, code, title, text]) => `<section class="hp-row" style="--k:${ROW_COLORS[mode]}">
       <div class="hp-label"><strong>${code}</strong><span>${title}</span><small>${text}</small></div>
-      <div class="hp-tiles">${tile(mode, code, 'standard')}${SIMPLE_MODES.includes(mode) ? tile(mode, code, 'simple') : ''}</div>
+      <div class="hp-tiles">${tile(mode, code, 'standard')}${SIMPLE_MODES.includes(mode) ? tile(mode, code, 'simple') : ''}${['db', 'execution'].includes(mode) || mode === 'da' && choice.discipline === 'individual' ? tile(mode, code, 'expert') : ''}</div>
     </section>`).join('')}
     <footer class="hp-foot">
       ${choice.level === 'custom' ? `<a class="home-link" href="#/settings/${choice.discipline}">⚙ Edit custom settings</a>` : '<span></span>'}

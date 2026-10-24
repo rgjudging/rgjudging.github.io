@@ -35,7 +35,7 @@ const getData = () => {
   }
 };
 const saveData = (data) => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-const format = (value) => Number(value).toFixed(2);
+const format = (value) => Number(value).toFixed(1);
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
 let data = getData();

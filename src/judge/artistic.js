@@ -1,4 +1,4 @@
-import { mount, t, t2 } from './core.js';
+import { mount, t } from './core.js';
 import { limitsFor } from './settings.js';
 
 const SINGLES = [
@@ -82,7 +82,7 @@ function history(units) {
 }
 
 const scoreBar = (c, extra) => `<footer class="foot">
-  <div class="foot-total wide"><strong class="warn">−${t2(c.deduction)}</strong><strong class="score-blue">${t2(c.score)}</strong></div>${extra}
+  <div class="foot-total wide"><strong class="warn">−${t(c.deduction)}</strong><strong class="score-blue">${t(c.score)}</strong></div>${extra}
 </footer>`;
 
 function stageOne(s, r) {
@@ -119,7 +119,7 @@ function stageTwo(s, r) {
   const singleButton = ([id, text, values]) => `<div class="single"><span>${text}</span><div>${values.map((v) => `<button class="mini ${s.singles[id] === v ? 'on bad-on' : ''}" data-act="single" data-k="${id}" data-v="${v}">${t(v)}</button>`).join('')}</div></div>`;
   return `
     <section class="check">
-      <div class="check-top"><div><small>Deduction</small><strong class="warn">−${t2(c.deduction)}</strong></div><div><small>Score</small><strong class="score-blue">${t2(c.score)}</strong></div>
+      <div class="check-top"><div><small>Deduction</small><strong class="warn">−${t(c.deduction)}</strong></div><div><small>Score</small><strong class="score-blue">${t(c.score)}</strong></div>
         <button class="variety ${s.variety ? 'on' : ''}" data-act="variety">${s.variety ? '✓ ' : ''}Variety in character</button></div>
       <h4>Single deductions</h4>
       <div class="singles">${SINGLES.map(singleButton).join('')}</div>

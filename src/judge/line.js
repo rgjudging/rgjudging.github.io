@@ -1,4 +1,4 @@
-import { mount, t, t2 } from './core.js';
+import { mount, t } from './core.js';
 
 const SIDES = [['gymnast', 'GYMNAST OFF AREA', '#9333ea'], ['apparatus', 'APPARATUS OFF AREA', '#06b6d4']];
 const total = (s) => (s.apparatus + s.gymnast) * 3;
@@ -13,7 +13,7 @@ function view(s) {
     <section class="line-split">
       ${side(s, SIDES[0])}
       <div class="center-col">
-        <div class="total-card"><small>TOTAL</small><strong class="warn">${total(s) ? '−' : ''}${t2(total(s))}</strong><span>−0.3 each</span></div>
+        <div class="total-card"><small>TOTAL</small><strong class="warn">${total(s) ? '−' : ''}${t(total(s))}</strong><span>−0.3 each</span></div>
         <button class="foot-btn primary send-big" data-act="send">Send</button>
         <div class="mini-actions"><button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>↶ Undo</button><button class="foot-btn" data-act="reset">Reset</button></div>
       </div>

@@ -13,9 +13,9 @@ const ORDER = { individual: ['jumps', 'balances', 'rotations', 'risks'], ensembl
 const GROUPS = ['jumps', 'balances', 'rotations'];
 const GROUP_NAMES = { jumps: 'Jumps', balances: 'Balances', rotations: 'Rotations' };
 
-const entryValue = (entry) => entry.value + (entry.extra || 0);
+export const entryValue = (entry) => entry.value + (entry.extra || 0);
 
-function score(s, r) {
+export function score(s, r) {
   const valid = s.entries.filter((entry) => entry.valid);
   const limits = limitsFor(r);
   const missing = GROUPS.filter((group) => valid.filter((entry) => entry.cat === group).length < limits.minDbPerGroup);
@@ -71,7 +71,7 @@ function view(s, r) {
       </div>
       <div class="vals-col">
         <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
-        ${tab === 'rotations' ? `<section class="extras"><button class="tile small" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
+        ${tab === 'rotations' ? `<section class="extras"><button class="tile small rotation-extra rotation-extra-1" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small rotation-extra rotation-extra-2" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
       </div>
     </section>`;
 }
