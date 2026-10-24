@@ -17,22 +17,30 @@ const app = document.querySelector('#app');
 
 const segment = (name, options) => `<div class="segment">${options.map(([id, label]) => `<button class="${choice[name] === id ? 'selected' : ''}" data-${name}="${id}">${label}</button>`).join('')}</div>`;
 
+const ROW_COLORS = { db: '#3b82f6', da: '#22c55e', artistic: '#a855f7', execution: '#06b6d4', line: '#f59e0b', timing: '#ec4899' };
+
 function renderHome() {
-  app.innerHTML = `<main class="home">
-    <p class="home-brand">RG JUDGE</p>
-    <h1>Choose a panel</h1>
-    <div class="home-controls">
-      ${segment('discipline', [['individual', 'Individual'], ['ensemble', 'Group']])}
-      ${segment('level', [['junior', 'Juniors'], ['senior', 'Seniors'], ['custom', 'Custom']])}
-      ${segment('view', [['standard', 'Standard'], ['simple', 'Simple']])}
-    </div>
-    ${choice.level === 'custom' ? `<a class="home-link" href="#/settings/${choice.discipline}">⚙ Edit custom settings</a>` : ''}
-    <div class="home-grid">${panels.map(([mode, code, title, text]) => `<a class="home-card" href="#/${mode}/${choice.discipline}/${choice.level}${choice.view === 'simple' && SIMPLE_MODES.includes(mode) ? '/-/simple' : ''}"><span class="home-code">${code}</span><span><strong>${title}</strong><small>${text}</small></span></a>`).join('')}</div>
-    <a class="home-link" href="./platform.html">Competition platform →</a>
+  const suffix = choice.discipline === 'ensemble' ? 'Group' : 'Individual';
+  const tile = (mode, code, kind) => `<a class="hp-tile" style="--k:${ROW_COLORS[mode]}" href="#/${mode}/${choice.discipline}/${choice.level}${kind === 'simple' ? '/-/simple' : ''}"><b>${code}</b><small>${kind === 'simple' ? 'Simple' : 'Standard'} · ${suffix}</small></a>`;
+  app.innerHTML = `<main class="hp">
+    <header class="hp-head">
+      <div><h1>JUDGE PANEL SELECTION</h1><p>Select a mode and open the required panel</p></div>
+      <div class="hp-controls">
+        ${segment('discipline', [['individual', 'Individual'], ['ensemble', 'Group']])}
+        ${segment('level', [['junior', 'Juniors'], ['senior', 'Seniors'], ['custom', 'Custom']])}
+      </div>
+    </header>
+    ${panels.map(([mode, code, title, text]) => `<section class="hp-row" style="--k:${ROW_COLORS[mode]}">
+      <div class="hp-label"><strong>${code}</strong><span>${title}</span><small>${text}</small></div>
+      <div class="hp-tiles">${tile(mode, code, 'standard')}${SIMPLE_MODES.includes(mode) ? tile(mode, code, 'simple') : ''}</div>
+    </section>`).join('')}
+    <footer class="hp-foot">
+      ${choice.level === 'custom' ? `<a class="home-link" href="#/settings/${choice.discipline}">⚙ Edit custom settings</a>` : '<span></span>'}
+      <a class="home-link" href="./platform.html">Competition platform →</a>
+    </footer>
   </main>`;
   app.querySelectorAll('[data-discipline]').forEach((button) => button.addEventListener('click', () => { choice.discipline = button.dataset.discipline; remember(); renderHome(); }));
   app.querySelectorAll('[data-level]').forEach((button) => button.addEventListener('click', () => { choice.level = button.dataset.level; remember(); renderHome(); }));
-  app.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => { choice.view = button.dataset.view; remember(); renderHome(); }));
 }
 
 window.addEventListener('hashchange', () => location.reload());

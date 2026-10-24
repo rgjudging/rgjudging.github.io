@@ -19,11 +19,18 @@ function view(s, r) {
       <div class="hist-head"><span>DEDUCTIONS</span><span>${s.entries.filter((entry) => entry.valid).length} recorded</span></div>
       <div class="chips">${chips || '<em class="empty">No deductions</em>'}</div>
     </section>
-    <nav class="tabs" style="--n:${tabs.length}">${tabs.map(([id, text, color]) => `<button class="tab ${id === tab ? 'active' : ''}" style="--c:${color}" data-act="tab" data-id="${id}">${text}</button>`).join('')}</nav>
-    <section class="values exec" style="--cols:3">${[1, 3, 5].map((v) => `<button class="tile" data-act="add" data-v="${v}">−${t(v)}</button>`).join('')}</section>
-    <div class="section-label danger">Loss / Fall</div>
-    <section class="values loss" style="--cols:3">${[5, 7, 10].map((v) => `<button class="tile danger" data-act="loss" data-v="${v}">−${t(v)}</button>`).join('')}</section>
-    ${footer((s.undo || []).length > 0, `<div class="foot-total wide"><small>DEDUCTION</small><strong class="warn">${t2(deduction)}</strong></div><div class="foot-total"><small>TOTAL</small><strong>${t2(Math.max(0, 100 - deduction))}</strong></div>`, '<button class="foot-btn primary" data-act="send">Send</button>')}`;
+    <section class="split split-exec">
+      <nav class="side-tabs"><div class="tabcol">${tabs.map(([id, text, color]) => `<button class="tab ${id === tab ? 'active' : ''}" style="--c:${color}" data-act="tab" data-id="${id}">${text}</button>`).join('')}</div></nav>
+      <div class="center-col">
+        <div class="total-card"><small>DEDUCTION</small><strong class="warn">${t2(deduction)}</strong><span>Total ${t2(Math.max(0, 100 - deduction))}</span></div>
+        <button class="foot-btn primary send-big" data-act="send">Send</button>
+        <div class="mini-actions"><button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>↶ Undo</button><button class="foot-btn" data-act="reset">Reset</button></div>
+      </div>
+      <div class="vals-col two">
+        <div class="vcol"><div class="section-label danger">Loss / Fall</div><section class="values loss" style="--cols:1">${[5, 7, 10].map((v) => `<button class="tile danger" data-act="loss" data-v="${v}">−${t(v)}</button>`).join('')}</section></div>
+        <div class="vcol"><div class="section-label">Deductions</div><section class="values exec" style="--cols:1">${[1, 3, 5].map((v) => `<button class="tile" data-act="add" data-v="${v}">−${t(v)}</button>`).join('')}</section></div>
+      </div>
+    </section>`;
 }
 
 export default function (r) {

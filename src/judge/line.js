@@ -1,20 +1,24 @@
-import { mount, footer, t, t2 } from './core.js';
+import { mount, t, t2 } from './core.js';
 
-const ROWS = [['apparatus', 'APPARATUS OFF AREA'], ['gymnast', 'GYMNAST OFF AREA']];
+const SIDES = [['gymnast', 'GYMNAST OFF AREA', '#9333ea'], ['apparatus', 'APPARATUS OFF AREA', '#06b6d4']];
 const total = (s) => (s.apparatus + s.gymnast) * 3;
+
+const side = (s, [key, text, color]) => `<div class="line-side">
+  <button class="line-big" style="--k:${color}" data-act="inc" data-k="${key}"><span>${text}</span><b>${s[key]}</b><em>${s[key] ? '−' : ''}${t(s[key] * 3)}</em></button>
+  <button class="line-dec" data-act="dec" data-k="${key}" ${s[key] ? '' : 'disabled'}>−</button>
+</div>`;
 
 function view(s) {
   return `
-    <section class="line-board">
-      ${ROWS.map(([key, text]) => `<div class="line-row">
-        <div class="line-label"><strong>${text}</strong><small>−0.3 each</small></div>
-        <button class="line-minus" data-act="dec" data-k="${key}" ${s[key] ? '' : 'disabled'}>−</button>
-        <div class="line-count">${s[key]}</div>
-        <button class="line-plus" data-act="inc" data-k="${key}">+</button>
-        <div class="line-value">${s[key] ? "−" : ""}${t(s[key] * 3)}</div>
-      </div>`).join('')}
-    </section>
-    ${footer((s.undo || []).length > 0, `<div class="foot-total wide"><small>TOTAL</small><strong class="warn">${total(s) ? "−" : ""}${t2(total(s))}</strong></div>`, '<button class="foot-btn primary" data-act="send">Send</button>')}`;
+    <section class="line-split">
+      ${side(s, SIDES[0])}
+      <div class="center-col">
+        <div class="total-card"><small>TOTAL</small><strong class="warn">${total(s) ? '−' : ''}${t2(total(s))}</strong><span>−0.3 each</span></div>
+        <button class="foot-btn primary send-big" data-act="send">Send</button>
+        <div class="mini-actions"><button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>↶ Undo</button><button class="foot-btn" data-act="reset">Reset</button></div>
+      </div>
+      ${side(s, SIDES[1])}
+    </section>`;
 }
 
 export default function (r) {

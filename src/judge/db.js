@@ -5,8 +5,8 @@ const TABS = {
   jumps: { label: 'Λ', chip: 'Λ', color: '#4c9aff', values: range(1, 8) },
   balances: { label: '⊤', chip: '⊤', color: '#ff9f1c', values: range(1, 8) },
   rotations: { label: '⫰', chip: '⫰', color: '#ff5fa2', values: range(1, 8) },
-  risks: { label: 'R', chip: 'R', color: '#19c37d', values: range(1, 13) },
-  de: { label: 'DE', chip: 'DE', color: '#2dd4bf', values: range(1, 13) },
+  risks: { label: 'R', chip: 'R', color: '#19c37d', values: range(2, 13) },
+  de: { label: 'DE', chip: 'DE', color: '#2dd4bf', values: range(2, 13) },
 };
 const ORDER = { individual: ['jumps', 'balances', 'rotations', 'risks'], ensemble: ['jumps', 'balances', 'rotations', 'risks', 'de'] };
 
@@ -48,7 +48,7 @@ function view(s, r) {
   const tab = order.includes(s.tab) ? s.tab : order[0];
   const config = TABS[tab];
   const result = score(s, r);
-  const columns = config.values.length > 8 ? 5 : 4;
+  const columns = 4;
   const chips = s.entries.map((entry) => {
     const classes = ['chip', entry.valid ? '' : 'off', result.counted.has(entry.id) || !entry.valid ? '' : 'dim'].join(' ');
     return `<button class="${classes}" style="--c:${TABS[entry.cat].color}" data-act="toggle" data-id="${entry.id}" title="Tap to ${entry.valid ? 'invalidate' : 'restore'}"><span>${TABS[entry.cat].chip}</span>${t(entryValue(entry))}</button>`;
@@ -56,16 +56,24 @@ function view(s, r) {
 
   return `
     <section class="hist">
-      <div class="hist-head"><span>HISTORY · ${result.headline}</span><strong class="total-inline">TOTAL: ${t(result.total)}</strong></div>
+      <div class="hist-head"><span>HISTORY · ${result.headline}</span></div>
       <div class="chips">${chips || '<em class="empty">No elements</em>'}</div>
     </section>
-    <nav class="tabs" style="--n:${order.length}">${order.map((id) => {
-      const count = id === 'risks' ? ` <small>${s.entries.filter((e) => e.cat === 'risks' && e.valid).length}</small>` : '';
-      return `<button class="tab ${id === tab ? 'active' : ''}" data-tab="${id}" style="--c:${TABS[id].color}" data-act="tab" data-id="${id}">${TABS[id].label}${count}</button>`;
-    }).join('')}</nav>
-    <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
-    ${tab === 'rotations' ? `<section class="extras"><button class="tile small" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
-    ${footer((s.undo || []).length > 0, `<div class="foot-note">${result.notes.join(' · ') || 'No penalty'}</div><div class="foot-total"><small>TOTAL</small><strong>${t(result.total)}</strong></div>`)}`;
+    <section class="split split-db">
+      <nav class="side-tabs">${[order.slice(0, 3), order.slice(3)].map((group) => `<div class="tabcol">${group.map((id) => {
+        const count = id === 'risks' ? ` <small>${s.entries.filter((e) => e.cat === 'risks' && e.valid).length}/${limitsFor(r).risks}</small>` : '';
+        return `<button class="tab ${id === tab ? 'active' : ''}" data-tab="${id}" style="--c:${TABS[id].color}" data-act="tab" data-id="${id}">${TABS[id].label}${count}</button>`;
+      }).join('')}</div>`).join('')}</nav>
+      <div class="center-col">
+        <div class="total-card"><small>TOTAL</small><strong>${t(result.total)}</strong><span>${result.headline}</span></div>
+        <div class="notes">${result.notes.join(' · ') || 'No penalty'}</div>
+        <div class="mini-actions"><button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>↶ Undo</button><button class="foot-btn" data-act="reset">Reset</button></div>
+      </div>
+      <div class="vals-col">
+        <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
+        ${tab === 'rotations' ? `<section class="extras"><button class="tile small" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
+      </div>
+    </section>`;
 }
 
 export default function (r) {
