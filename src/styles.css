@@ -56,6 +56,8 @@ em { font-style: normal; }
 .empty { margin: auto; color: var(--muted); font-size: 13px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-left: 4px solid var(--c); border-radius: 6px; background: var(--panel-2); font-size: 15px; font-weight: 700; }
 .chip span { color: var(--c); font-size: 13px; }
+.chip.pivot-chip { flex-direction: column; gap: 2px; }
+.chip.pivot-chip small { color: var(--muted); font-size: 10px; font-weight: 700; }
 .chip.off { text-decoration: line-through; opacity: .4; }
 .chip.dim { opacity: .55; border-left-style: dashed; }
 

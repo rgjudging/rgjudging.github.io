@@ -15,6 +15,13 @@ const GROUP_NAMES = { jumps: 'Jumps', balances: 'Balances', rotations: 'Rotation
 
 export const entryValue = (entry) => entry.value + (entry.extra || 0);
 
+const rotationTurnCount = (entry) => {
+  if (!entry) return 0;
+  if (Number.isInteger(entry.extraTurns) && entry.extraTurns >= 1) return entry.extraTurns;
+  const choice = entry.extraChoice || ([1, 2].includes(entry.extra) ? entry.extra : 0);
+  return 1 + (choice && entry.extra ? Math.round(entry.extra / choice) : 0);
+};
+
 export function score(s, r) {
   const valid = s.entries.filter((entry) => entry.valid);
   const limits = limitsFor(r);
@@ -66,13 +73,13 @@ function view(s, r) {
   const tab = order.includes(s.tab) ? s.tab : order[0];
   const config = TABS[tab];
   const result = score(s, r);
-  const lastBalance = [...s.entries].reverse().find((entry) => entry.cat === 'balances' && entry.valid);
   const lastRotation = [...s.entries].reverse().find((entry) => entry.cat === 'rotations' && entry.valid);
   const extraChoice = lastRotation?.extraChoice || ([1, 2].includes(lastRotation?.extra) ? lastRotation.extra : 0);
   const columns = 4;
   const chips = s.entries.map((entry) => {
     const classes = ['chip', entry.valid ? '' : 'off', result.counted.has(entry.id) || !entry.valid ? '' : 'dim'].join(' ');
-    return `<button class="${classes}" style="--c:${TABS[entry.cat].color}" data-act="toggle" data-id="${entry.id}" title="Tap to ${entry.valid ? 'invalidate' : 'restore'}"><span>${TABS[entry.cat].chip}</span>${t(entryValue(entry))}</button>`;
+    const turns = entry.cat === 'rotations' ? rotationTurnCount(entry) : 0;
+    return `<button class="${classes} ${turns ? 'pivot-chip' : ''}" style="--c:${TABS[entry.cat].color}" data-act="toggle" data-id="${entry.id}" title="Tap to ${entry.valid ? 'invalidate' : 'restore'}"><span>${TABS[entry.cat].chip}</span>${t(entryValue(entry))}${turns ? `<small>${turns}</small>` : ''}</button>`;
   }).join('');
 
   return `
@@ -92,7 +99,6 @@ function view(s, r) {
       <div class="vals-col">
         <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
         ${tab === 'rotations' ? `<section class="extras"><button class="tile small rotation-extra rotation-extra-1" data-act="extra" data-v="1" ${extraChoice === 2 ? 'disabled' : ''}>+0.1</button><button class="tile small rotation-extra rotation-extra-2" data-act="extra" data-v="2" ${extraChoice === 1 ? 'disabled' : ''}>+0.2</button></section>` : ''}
-        ${tab === 'balances' ? `<section class="extras"><button class="tile small flat-foot-button" data-act="flat-foot" aria-label="Flat foot, minus 0.1" title="Flat foot −0.1" ${lastBalance && !lastBalance.flatFoot ? '' : 'disabled'}>↓</button></section>` : ''}
       </div>
     </section>`;
 }
@@ -103,20 +109,20 @@ export default function (r) {
     view,
     actions: {
       tab: (s, d) => { s.tab = d.id; return false; },
-      add: (s, d) => { s.entries.push({ id: uid(), cat: s.tab, value: Number(d.v), extra: 0, valid: true }); },
+      add: (s, d) => {
+        const entry = { id: uid(), cat: s.tab, value: Number(d.v), extra: 0, valid: true };
+        if (s.tab === 'rotations') entry.extraTurns = 1;
+        s.entries.push(entry);
+      },
       extra: (s, d) => {
         const last = [...s.entries].reverse().find((entry) => entry.cat === 'rotations' && entry.valid);
         if (!last) return false;
         const value = Number(d.v);
         if (![1, 2].includes(value) || last.extraChoice && last.extraChoice !== value) return false;
+        const turns = rotationTurnCount(last);
         last.extraChoice = value;
         last.extra = (last.extra || 0) + value;
-      },
-      'flat-foot': (s) => {
-        const last = [...s.entries].reverse().find((entry) => entry.cat === 'balances' && entry.valid);
-        if (!last || last.flatFoot) return false;
-        last.extra = (last.extra || 0) - 1;
-        last.flatFoot = true;
+        last.extraTurns = turns + 1;
       },
       toggle: (s, d) => { const entry = s.entries.find((item) => item.id === d.id); if (entry) entry.valid = !entry.valid; },
     },
