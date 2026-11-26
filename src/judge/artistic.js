@@ -2,7 +2,7 @@ import { mount, t } from './core.js';
 import { limitsFor } from './settings.js';
 
 const SINGLES = [
-  ['body', 'BODY', [3, 6]], ['face', 'FACE', [3]], ['space', 'SPACE', [3]],
+  ['body', 'BODY', [3, 6]], ['face', 'FACE', [3]],
   ['end', 'END', [3]], ['music', 'MUSIC', [3]], ['intro', 'INTRO', [3]],
 ];
 const GROUP_SINGLES = [['patterns', 'Patterns', [3]], ['amplitude', 'Amplitude', [3]], ['noapp', 'No app. 5s+', [3]], ['startend', 'Start/end pos.', [6]]];
@@ -112,7 +112,11 @@ function compute(s, r) {
   const requiredDynamics = limitsFor(r).dynamics;
   const rhythm = Math.min(20, s.rhythm);
   const connections = Math.min(20, s.connections);
-  const singles = Object.values(s.singles).reduce((sum, value) => sum + value, 0);
+  const activeSingleIds = [
+    ...SINGLES.map(([id]) => id),
+    ...(group ? GROUP_SINGLES.map(([id]) => id) : []),
+  ];
+  const singles = activeSingleIds.reduce((sum, id) => sum + (Number(s.singles[id]) || 0), 0);
   const collectives = collectiveCounts(s);
   const missingCollective = group ? COLLECTIVE.filter(([id]) => collectives[id] === 0).length : 0;
 
