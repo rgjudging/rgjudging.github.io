@@ -139,6 +139,9 @@ em { font-style: normal; }
 .art-history-mark.connections { color: #60a5fa; }
 .art-history-mark.dynamics { color: #22d3ee; }
 .art-history-mark.interruption { color: #fbbf24; }
+.art-history-mark.collective { color: #34d399; }
+.art-history-mark.flag { color: #fbbf24; }
+.art-history-mark.inactive { opacity: .55; text-decoration: line-through; }
 .art-history-symbol { display: inline-grid; place-items: center; width: 30px; height: 30px; border: 2px solid currentColor; border-radius: 4px; font-size: 16px; font-weight: 900; line-height: 1; }
 .art-history-symbol.dynamic-change { color: var(--expert-cyan); }
 .art-history-symbol.effect { color: var(--expert-amber); }

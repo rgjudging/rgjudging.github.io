@@ -142,6 +142,14 @@ function history(units, entries, marks, timeline) {
     if (mark.type === 'effect') return '<span class="art-history-mark effect">Effect</span>';
     if (mark.type === 'connections') return '<span class="art-history-mark connections">Connection</span>';
     if (mark.type === 'rhythm') return '<span class="art-history-mark rhythm">Rhythm</span>';
+    if (mark.type === 'collective') {
+      const label = COLLECTIVE.find(([id]) => id === mark.value.id)?.[1] || 'Collective work';
+      return `<span class="art-history-mark collective ${mark.value.active ? '' : 'inactive'}">${label}${mark.value.active ? ' &#x2713;' : ' &minus;'}</span>`;
+    }
+    if (mark.type === 'flag') {
+      const label = mark.value.key === 'contact' ? 'Contact' : 'Raised constructions';
+      return `<span class="art-history-mark flag ${mark.value.active ? '' : 'inactive'}">${label}${mark.value.active ? ' &#x2713;' : ' &minus;'}</span>`;
+    }
     return `<span class="art-history-mark ${mark.type}">Interruption</span>`;
   };
   const columns = timeline.map((event) => `<div class="art-timeline-column">
@@ -281,8 +289,14 @@ export default function (r) {
         s.rhythm += 1;
         addHistoryMark(s, 'rhythm', 1);
       },
-      collective: (s, d) => { s.collective[d.k] = !s.collective[d.k]; },
-      flag: (s, d) => { s[d.k] = !s[d.k]; },
+      collective: (s, d) => {
+        s.collective[d.k] = !s.collective[d.k];
+        addHistoryMark(s, 'collective', { id: d.k, active: s.collective[d.k] });
+      },
+      flag: (s, d) => {
+        s[d.k] = !s[d.k];
+        addHistoryMark(s, 'flag', { key: d.k, active: s[d.k] });
+      },
       single: (s, d) => { s.singles[d.k] = s.singles[d.k] === Number(d.v) ? 0 : Number(d.v); },
       variety: (s) => { s.variety = !s.variety; },
       next: (s) => { s.stage = 2; return false; },
