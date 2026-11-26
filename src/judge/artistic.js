@@ -104,7 +104,7 @@ function compute(s, r) {
   const missingCollective = group ? COLLECTIVE.filter(([id]) => !s.collective[id]).length : 0;
 
   const rows = [
-    [`Idea: ${withParts} with / ${withoutParts} without character${s.variety ? '' : ' Â· no variety'}`, character],
+    [`Idea: ${withParts} with / ${withoutParts} without character${s.variety ? '' : ' &middot; no variety'}`, character],
     [`Dance steps (${steps}/${requiredSteps})`, Math.max(0, requiredSteps - steps) * 3],
     [`Dynamics (${s.dynamics}/${requiredDynamics})`, Math.max(0, requiredDynamics - s.dynamics) * 3],
     ['Connections', connections],
@@ -123,7 +123,7 @@ function history(units, entries, marks, timeline) {
   const dot = (item, dead) => {
     const symbol = item.step ? 'S' : '';
     const duration = item.step ? `${item.dur >= 8 ? Math.round(item.dur) : item.dur.toFixed(1)}s` : '';
-    return `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''} ${dead ? 'invalid' : ''}" ${item.step ? `data-act="invalidate" data-idx="${item.idx}" title="${dead ? 'Restore' : 'Invalidate'} dance step Â· ${duration}"` : ''}>${symbol}</i>`;
+    return `<i class="dot ${item.kind === 'with' ? 'full' : 'hollow'} ${item.step ? 'step' : ''} ${dead ? 'invalid' : ''}" ${item.step ? `data-act="invalidate" data-idx="${item.idx}" title="${dead ? 'Restore' : 'Invalidate'} dance step &middot; ${duration}"` : ''}>${symbol}</i>`;
   };
   const entryUnits = new Map();
   units.forEach((unit) => unit.items.forEach((item, index) => entryUnits.set(item.idx, { unit, item, index })));
@@ -159,7 +159,7 @@ function history(units, entries, marks, timeline) {
 }
 
 const scoreBar = (c, extra) => `<footer class="foot">
-  <div class="foot-total wide"><strong class="warn">âˆ’${t(c.deduction)}</strong><strong class="score-blue">${t(c.score)}</strong></div>${extra}
+  <div class="foot-total wide"><strong class="warn">&minus;${t(c.deduction)}</strong><strong class="score-blue">${t(c.score)}</strong></div>${extra}
 </footer>`;
 
 function stageOne(s, r) {
@@ -167,7 +167,7 @@ function stageOne(s, r) {
   const group = r.discipline === 'ensemble';
   return `
     <section class="hist">
-      <div class="hist-head"><span>HISTORY Â· parts <b class="good-text">${c.withParts}</b> / <b class="bad-text">${c.withoutParts}</b></span><span>${c.rows[0][1] ? `Idea âˆ’${t(c.rows[0][1])}` : 'Idea OK'}</span></div>
+      <div class="hist-head"><span>HISTORY &middot; parts <b class="good-text">${c.withParts}</b> / <b class="bad-text">${c.withoutParts}</b></span><span>${c.rows[0][1] ? `Idea &minus;${t(c.rows[0][1])}` : 'Idea OK'}</span></div>
       ${history(c.units, s.entries, s.historyMarks || [], timelineFor(s))}
     </section>
     <section class="art-board ${group ? 'is-group' : ''}">
@@ -181,16 +181,16 @@ function stageOne(s, r) {
           <button class="art art-standard-dynamics" data-act="dynamicChange"><span>DYNAMIC CHANGES</span><b>${s.dynamics}</b></button>
           <button class="art art-standard-effect" data-act="effect"><span>EFFECT</span></button>
         </div>
-        <button class="art dark ${s.intStart ? 'running' : ''}" data-act="interruption"><span>INTERRUPTION${s.longInterruption ? ' âœ“' : ''}</span>${s.longInterruption ? '<small>âˆ’0.6 taken</small>' : ''}<small data-live="int"></small></button>
+        <button class="art dark ${s.intStart ? 'running' : ''}" data-act="interruption"><span>INTERRUPTION${s.longInterruption ? ' &#x2713;' : ''}</span>${s.longInterruption ? '<small>&minus;0.6 taken</small>' : ''}<small data-live="int"></small></button>
       </div>
       <div class="art-col">
         <button class="art bad art-compact-button" data-act="connections" ><span>CONNECTIONS</span><b>${t(Math.min(20, s.connections))}</b></button>
         <button class="art bad art-compact-button" data-act="rhythm" ><span>RHYTHM</span><b>${t(Math.min(20, s.rhythm))}</b></button>
         ${group ? `<div class="collective"><span>COLLECTIVE</span><div>${COLLECTIVE.map(([id, text]) => `<button class="mini ${s.collective[id] ? 'on' : ''}" data-act="collective" data-k="${id}">${text}</button>`).join('')}</div></div>
-        <div class="art-row"><button class="art bad small ${s.contact ? 'chosen' : ''}" data-act="flag" data-k="contact">CONTACT<small>âˆ’0.3</small></button><button class="art bad small ${s.construction ? 'chosen' : ''}" data-act="flag" data-k="construction">RAISED CONSTRUCTIONS<small>âˆ’0.3</small></button></div>` : ''}
+        <div class="art-row"><button class="art bad small ${s.contact ? 'chosen' : ''}" data-act="flag" data-k="contact">CONTACT<small>&minus;0.3</small></button><button class="art bad small ${s.construction ? 'chosen' : ''}" data-act="flag" data-k="construction">RAISED CONSTRUCTIONS<small>&minus;0.3</small></button></div>` : ''}
       </div>
     </section>
-    ${scoreBar(c, `<button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>â†¶ Undo</button><button class="foot-btn" data-act="reset">Reset</button><button class="foot-btn primary" data-act="next">NEXT â†’</button>`)}`;
+    ${scoreBar(c, `<button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>&#x21B6; Undo</button><button class="foot-btn" data-act="reset">Reset</button><button class="foot-btn primary" data-act="next">NEXT &#x2192;</button>`)}`;
 }
 
 function stageTwo(s, r) {
@@ -199,19 +199,19 @@ function stageTwo(s, r) {
   const singleButton = ([id, text, values]) => `<div class="single"><span>${text}</span><div>${values.map((v) => `<button class="mini ${s.singles[id] === v ? 'on bad-on' : ''}" data-act="single" data-k="${id}" data-v="${v}">${t(v)}</button>`).join('')}</div></div>`;
   return `
     <section class="check">
-      <div class="check-top"><div><small>Deduction</small><strong class="warn">âˆ’${t(c.deduction)}</strong></div><div><small>Score</small><strong class="score-blue">${t(c.score)}</strong></div>
-        <button class="variety ${s.variety ? 'on' : ''}" data-act="variety">${s.variety ? 'âœ“ ' : ''}Variety in character</button></div>
+      <div class="check-top"><div><small>Deduction</small><strong class="warn">&minus;${t(c.deduction)}</strong></div><div><small>Score</small><strong class="score-blue">${t(c.score)}</strong></div>
+        <button class="variety ${s.variety ? 'on' : ''}" data-act="variety">${s.variety ? '&#x2713; ' : ''}Variety in character</button></div>
       <h4>Single deductions</h4>
       <div class="singles">${SINGLES.map(singleButton).join('')}</div>
       ${group ? `<h4>Group deductions</h4><div class="singles">${GROUP_SINGLES.map(singleButton).join('')}</div>` : ''}
       <h4>Counted on the panel</h4>
-      <div class="recap">${c.rows.map(([name, value]) => `<div><span>${name}</span><b class="${value ? 'bad-text' : 'good-text'}">${value ? 'âˆ’' : ''}${t(value)}</b></div>`).join('')}</div>
+      <div class="recap">${c.rows.map(([name, value]) => `<div><span>${name}</span><b class="${value ? 'bad-text' : 'good-text'}">${value ? '&minus;' : ''}${t(value)}</b></div>`).join('')}</div>
     </section>
     <footer class="foot"><button class="foot-btn big" data-act="back">Back</button><button class="foot-btn primary big-send" data-act="send">Send score</button></footer>`;
 }
 
 function live(s) {
-  const seconds = (from) => (from ? `â— ${((Date.now() - from) / 1000).toFixed(1)} s` : '');
+  const seconds = (from) => (from ? `\u25CF ${((Date.now() - from) / 1000).toFixed(1)} s` : '');
   return { step: seconds(s.stepStart), int: seconds(s.intStart) };
 }
 
