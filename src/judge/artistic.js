@@ -8,6 +8,18 @@ const SINGLES = [
 const GROUP_SINGLES = [['patterns', 'Patterns', [3]], ['amplitude', 'Amplitude', [3]], ['noapp', 'No app. 5s+', [3]], ['startend', 'Start/end pos.', [6]]];
 const COLLECTIVE = [['choral', 'Choral'], ['synch', 'Synch'], ['canon', 'Canon'], ['contr', 'Contr']];
 
+function counterValue(value) {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : value ? 1 : 0;
+}
+
+function collectiveCounts(s) {
+  if (typeof s.collective === 'number') {
+    const count = counterValue(s.collective);
+    return Object.fromEntries(COLLECTIVE.map(([id], index) => [id, index < count ? 1 : 0]));
+  }
+  return Object.fromEntries(COLLECTIVE.map(([id]) => [id, counterValue(s.collective?.[id])]));
+}
+
 function timelineFor(s) {
   if (Array.isArray(s.timeline) && (s.timeline.length || !(s.entries?.length || s.historyMarks?.length))) return s.timeline;
   const fromState = (state) => [
@@ -101,7 +113,8 @@ function compute(s, r) {
   const rhythm = Math.min(20, s.rhythm);
   const connections = Math.min(20, s.connections);
   const singles = Object.values(s.singles).reduce((sum, value) => sum + value, 0);
-  const missingCollective = group ? COLLECTIVE.filter(([id]) => !s.collective[id]).length : 0;
+  const collectives = collectiveCounts(s);
+  const missingCollective = group ? COLLECTIVE.filter(([id]) => collectives[id] === 0).length : 0;
 
   const rows = [
     [`Idea: ${withParts} with / ${withoutParts} without character${s.variety ? '' : ' &middot; no variety'}`, character],
@@ -113,7 +126,7 @@ function compute(s, r) {
     ['Single deductions', singles],
   ];
   if (group) {
-    rows.push(['Collective works', missingCollective * 3], ['Contact', s.contact ? 3 : 0], ['Raised constructions', s.construction ? 3 : 0]);
+    rows.push(['Collective works', missingCollective * 3], ['Contact', counterValue(s.contact) ? 3 : 0], ['Raised constructions', counterValue(s.construction) ? 3 : 0]);
   }
   const deduction = rows.reduce((sum, row) => sum + row[1], 0);
   return { units, withParts, withoutParts, rows, deduction, score: Math.max(0, 100 - deduction) };
@@ -143,12 +156,15 @@ function history(units, entries, marks, timeline) {
     if (mark.type === 'connections') return '<span class="art-history-mark connections">Connection</span>';
     if (mark.type === 'rhythm') return '<span class="art-history-mark rhythm">Rhythm</span>';
     if (mark.type === 'collective') {
+      if (typeof mark.value === 'number') return `<span class="art-history-mark collective">Collective ${mark.value}</span>`;
       const label = COLLECTIVE.find(([id]) => id === mark.value.id)?.[1] || 'Collective work';
-      return `<span class="art-history-mark collective ${mark.value.active ? '' : 'inactive'}">${label}${mark.value.active ? ' &#x2713;' : ' &minus;'}</span>`;
+      const count = mark.value.count ?? (mark.value.active ? 1 : 0);
+      return `<span class="art-history-mark collective">${label} ${count}</span>`;
     }
     if (mark.type === 'flag') {
       const label = mark.value.key === 'contact' ? 'Contact' : 'Raised constructions';
-      return `<span class="art-history-mark flag ${mark.value.active ? '' : 'inactive'}">${label}${mark.value.active ? ' &#x2713;' : ' &minus;'}</span>`;
+      const count = mark.value.count ?? (mark.value.active ? 1 : 0);
+      return `<span class="art-history-mark flag">${label} ${count}</span>`;
     }
     return `<span class="art-history-mark ${mark.type}">Interruption</span>`;
   };
@@ -173,6 +189,7 @@ const scoreBar = (c, extra) => `<footer class="foot">
 function stageOne(s, r) {
   const c = compute(s, r);
   const group = r.discipline === 'ensemble';
+  const collectives = collectiveCounts(s);
   return `
     <section class="hist">
       <div class="hist-head"><span>HISTORY &middot; parts <b class="good-text">${c.withParts}</b> / <b class="bad-text">${c.withoutParts}</b></span><span>${c.rows[0][1] ? `Idea &minus;${t(c.rows[0][1])}` : 'Idea OK'}</span></div>
@@ -194,8 +211,8 @@ function stageOne(s, r) {
       <div class="art-col">
         <button class="art bad art-compact-button" data-act="connections" ><span>CONNECTIONS</span><b>${t(Math.min(20, s.connections))}</b></button>
         <button class="art bad art-compact-button" data-act="rhythm" ><span>RHYTHM</span><b>${t(Math.min(20, s.rhythm))}</b></button>
-        ${group ? `<div class="collective"><span>COLLECTIVE</span><div>${COLLECTIVE.map(([id, text]) => `<button class="mini ${s.collective[id] ? 'on' : ''}" data-act="collective" data-k="${id}">${text}</button>`).join('')}</div></div>
-        <div class="art-row"><button class="art bad small ${s.contact ? 'chosen' : ''}" data-act="flag" data-k="contact">CONTACT<small>&minus;0.3</small></button><button class="art bad small ${s.construction ? 'chosen' : ''}" data-act="flag" data-k="construction">RAISED CONSTRUCTIONS<small>&minus;0.3</small></button></div>` : ''}
+        ${group ? `<div class="collective-counters"><span>COLLECTIVE WORKS</span><div>${COLLECTIVE.map(([id, label]) => `<button class="mini collective-counter" data-act="collective" data-k="${id}"><span>${label}</span><b>${collectives[id]}</b></button>`).join('')}</div></div>
+        <div class="art-row"><button class="art bad small art-counter-button" data-act="flag" data-k="contact"><span>CONTACT</span><b>${counterValue(s.contact)}</b><small>&minus;0.3</small></button><button class="art bad small art-counter-button" data-act="flag" data-k="construction"><span>RAISED CONSTRUCTIONS</span><b>${counterValue(s.construction)}</b><small>&minus;0.3</small></button></div>` : ''}
       </div>
     </section>
     ${scoreBar(c, `<button class="foot-btn" data-act="undo" ${(s.undo || []).length ? '' : 'disabled'}>&#x21B6; Undo</button><button class="foot-btn" data-act="reset">Reset</button><button class="foot-btn primary" data-act="next">NEXT &#x2192;</button>`)}`;
@@ -249,7 +266,7 @@ export default function (r) {
   mount(r, {
     initial: {
       stage: 1, entries: [], dynamics: 0, connections: 0, rhythm: 0, historyMarks: [], timeline: [], stepStart: null, intStart: null,
-      longInterruption: false, collective: {}, contact: false, construction: false, variety: false, singles: {}, undo: [],
+      longInterruption: false, collective: {}, contact: 0, construction: 0, variety: false, singles: {}, undo: [],
     },
     view: (s) => (s.stage === 1 ? stageOne(s, r) : stageTwo(s, r)),
     live,
@@ -290,12 +307,13 @@ export default function (r) {
         addHistoryMark(s, 'rhythm', 1);
       },
       collective: (s, d) => {
-        s.collective[d.k] = !s.collective[d.k];
-        addHistoryMark(s, 'collective', { id: d.k, active: s.collective[d.k] });
+        s.collective = collectiveCounts(s);
+        s.collective[d.k] += 1;
+        addHistoryMark(s, 'collective', { id: d.k, count: s.collective[d.k] });
       },
       flag: (s, d) => {
-        s[d.k] = !s[d.k];
-        addHistoryMark(s, 'flag', { key: d.k, active: s[d.k] });
+        s[d.k] = counterValue(s[d.k]) + 1;
+        addHistoryMark(s, 'flag', { key: d.k, count: s[d.k] });
       },
       single: (s, d) => { s.singles[d.k] = s.singles[d.k] === Number(d.v) ? 0 : Number(d.v); },
       variety: (s) => { s.variety = !s.variety; },
