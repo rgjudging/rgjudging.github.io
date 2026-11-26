@@ -80,17 +80,22 @@ Selection-based penalties for artistic elements evaluated after the routine comp
    - Color: Orange
    - Single penalty value
 
-4. **Musical Introduction**
+4. **Floor Area (Space Usage)** — Individual routines only
+   - Options: 0.3 points
+   - Color: Blue
+   - Single penalty value
+
+5. **Musical Introduction**
    - Options: 0.3 points
    - Color: Purple
    - Single penalty value
 
-5. **Music Movement at End of Exercise**
+6. **Music Movement at End of Exercise**
    - Options: 0.3 points
    - Color: Mint
    - Single penalty value
 
-6. **Music Norms**
+7. **Music Norms**
    - Options: 0.3 points
    - Color: Blue
    - Single penalty value
@@ -148,7 +153,7 @@ Maximum Cap: 10.0 points
   - Mint: #b9e5c2 (Connection, Dance Steps, Body Expression)
   - Yellow: #e4d887 (Interruption, Dance Steps)
   - Coral: #ef8a74 (Accents, selection highlights)
-  - Blue: #9fcbd5 (Rhythm, Music Norms)
+  - Blue: #9fcbd5 (Rhythm, Floor Area, Music Norms)
   - Purple: #c9b3e4 (Guiding Idea, Musical Introduction)
   - Orange: #f5a962 (Facial Expression)
 

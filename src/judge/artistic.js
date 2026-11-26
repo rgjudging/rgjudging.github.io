@@ -2,7 +2,7 @@ import { mount, t } from './core.js';
 import { limitsFor } from './settings.js';
 
 const SINGLES = [
-  ['body', 'BODY', [3, 6]], ['face', 'FACE', [3]],
+  ['body', 'BODY', [3, 6]], ['face', 'FACE', [3]], ['space', 'SPACE', [3]],
   ['end', 'END', [3]], ['music', 'MUSIC', [3]], ['intro', 'INTRO', [3]],
 ];
 const GROUP_SINGLES = [['patterns', 'Patterns', [3]], ['amplitude', 'Amplitude', [3]], ['noapp', 'No app. 5s+', [3]], ['startend', 'Start/end pos.', [6]]];
@@ -113,7 +113,7 @@ function compute(s, r) {
   const rhythm = Math.min(20, s.rhythm);
   const connections = Math.min(20, s.connections);
   const activeSingleIds = [
-    ...SINGLES.map(([id]) => id),
+    ...SINGLES.filter(([id]) => id !== 'space' || r.discipline === 'individual').map(([id]) => id),
     ...(group ? GROUP_SINGLES.map(([id]) => id) : []),
   ];
   const singles = activeSingleIds.reduce((sum, id) => sum + (Number(s.singles[id]) || 0), 0);
@@ -231,7 +231,7 @@ function stageTwo(s, r) {
       <div class="check-top"><div><small>Deduction</small><strong class="warn">&minus;${t(c.deduction)}</strong></div><div><small>Score</small><strong class="score-blue">${t(c.score)}</strong></div>
         <button class="variety ${s.variety ? 'on' : ''}" data-act="variety">${s.variety ? '&#x2713; ' : ''}Variety in character</button></div>
       <h4>Single deductions</h4>
-      <div class="singles">${SINGLES.map(singleButton).join('')}</div>
+      <div class="singles">${SINGLES.filter(([id]) => id !== 'space' || r.discipline === 'individual').map(singleButton).join('')}</div>
       ${group ? `<h4>Group deductions</h4><div class="singles">${GROUP_SINGLES.map(singleButton).join('')}</div>` : ''}
       <h4>Counted on the panel</h4>
       <div class="recap">${c.rows.map(([name, value]) => `<div><span>${name}</span><b class="${value ? 'bad-text' : 'good-text'}">${value ? '&minus;' : ''}${t(value)}</b></div>`).join('')}</div>
