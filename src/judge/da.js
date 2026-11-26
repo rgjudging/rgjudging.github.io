@@ -37,12 +37,13 @@ function individualView(s, r) {
   const countedIds = new Set(counted.map((entry) => entry.id));
   const total = counted.reduce((sum, entry) => sum + entryTotal(entry), 0);
   const last = [...valid].pop();
+  const countLabel = `${valid.length} / ${s.entries.length} / ${limit}`;
   const chips = s.entries.map((entry) => `<button class="chip ${entry.valid ? '' : 'off'} ${countedIds.has(entry.id) || !entry.valid ? '' : 'dim'}" style="--c:#a78bfa" data-act="toggle" data-id="${entry.id}"><span>${icon(entry.glyph)}</span>${t(entryTotal(entry))}</button>`).join('');
   const panels = basePanels(bases, 'add');
 
   return `
     <section class="hist">
-      <div class="hist-head"><span>MY TIMELINE</span><span>${counted.length} / ${limit}</span></div>
+      <div class="hist-head"><span>MY TIMELINE</span><span>${countLabel}</span></div>
       <div class="chips">${chips || '<em class="empty">Add elements…</em>'}</div>
     </section>
     <section class="da-board">${panels}<button class="tile combi" data-act="combi" ${last && !last.combi ? '' : 'disabled'}><b>+0.1</b><small>COMBI</small></button></section>
@@ -58,7 +59,9 @@ function ensembleScore(s, r) {
   const types = { CC: count(['cc']), CR: count(['cr']), Multiple: count(['multipleThrow', 'multipleCatch']) };
   const missing = Object.values(types).reduce((sum, value) => sum + Math.max(0, limits.minimum - value), 0);
   const gross = counted.reduce((sum, entry) => sum + entry.value, 0);
-  return { counted, countedIds, types, missing, penalty: missing * 3, total: Math.max(0, gross - missing * 3), limits };
+  const validCount = s.entries.filter((entry) => entry.value > 0 && entry.valid).length;
+  const totalCount = s.entries.filter((entry) => entry.value > 0).length;
+  return { counted, countedIds, types, missing, penalty: missing * 3, total: Math.max(0, gross - missing * 3), limits, validCount, totalCount };
 }
 
 function ensembleView(s, r) {
@@ -70,7 +73,7 @@ function ensembleView(s, r) {
 
   return `
     <section class="hist">
-      <div class="hist-head"><span>MY TIMELINE</span><span>${result.counted.length} / ${result.limits.maximum}</span></div>
+      <div class="hist-head"><span>MY TIMELINE</span><span>${result.validCount} / ${result.totalCount} / ${result.limits.maximum}</span></div>
       <div class="chips">${chips || '<em class="empty">Add elements…</em>'}</div>
     </section>
     <nav class="tabs" style="--n:4">${ENSEMBLE_TABS.map((item) => `<button class="tab ${item.id === tab.id ? 'active' : ''}" style="--c:${item.color}" data-act="tab" data-id="${item.id}">${item.label}</button>`).join('')}</nav>
