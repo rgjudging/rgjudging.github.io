@@ -25,22 +25,40 @@ export function score(s, r) {
   let total;
 
   if (r.discipline === 'individual') {
+    const presentedDb = s.entries.filter((entry) => entry.cat !== 'risks');
+    const presentedRisks = s.entries.filter((entry) => entry.cat === 'risks');
     const db = valid.filter((entry) => entry.cat !== 'risks').sort((a, b) => entryValue(b) - entryValue(a)).slice(0, limits.db);
-    const risks = s.entries.filter((entry) => entry.cat === 'risks').slice(0, limits.risks).filter((entry) => entry.valid);
+    const risks = presentedRisks.slice(0, limits.risks).filter((entry) => entry.valid);
     counted = new Set([...db, ...risks].map((entry) => entry.id));
     total = [...db, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
-    return { total: Math.max(0, total - penalty), counted, notes, headline: `DB ${db.length}/${limits.db} · R ${risks.length}/${limits.risks}` };
+    const validDbCount = presentedDb.filter((entry) => entry.valid).length;
+    const validRiskCount = presentedRisks.filter((entry) => entry.valid).length;
+    return {
+      total: Math.max(0, total - penalty),
+      counted,
+      notes,
+      headline: `DB ${validDbCount}/${presentedDb.length}/${limits.db} · R ${validRiskCount}/${presentedRisks.length}/${limits.risks}`,
+    };
   }
 
+  const presentedRoutine = s.entries.filter((entry) => entry.cat !== 'risks');
+  const presentedRisks = s.entries.filter((entry) => entry.cat === 'risks');
   const routine = valid.filter((entry) => entry.cat !== 'risks').slice(0, limits.routine);
-  const risks = s.entries.filter((entry) => entry.cat === 'risks').slice(0, limits.risks).filter((entry) => entry.valid);
+  const risks = presentedRisks.slice(0, limits.risks).filter((entry) => entry.valid);
   const dbCount = valid.filter((entry) => !['risks', 'de'].includes(entry.cat)).length;
   const deCount = valid.filter((entry) => entry.cat === 'de').length;
   if (dbCount < limits.db) { penalty += 3; notes.push('Not enough DB −0.3'); }
   if (deCount < limits.de) { penalty += 3; notes.push(`Fewer than ${limits.de} DE −0.3`); }
   counted = new Set([...routine, ...risks].map((entry) => entry.id));
   total = [...routine, ...risks].reduce((sum, entry) => sum + entryValue(entry), 0);
-  return { total: Math.max(0, total - penalty), counted, notes, headline: `DB+DE ${routine.length}/${limits.routine} · R ${risks.length}/${limits.risks}` };
+  const validRoutineCount = presentedRoutine.filter((entry) => entry.valid).length;
+  const validRiskCount = presentedRisks.filter((entry) => entry.valid).length;
+  return {
+    total: Math.max(0, total - penalty),
+    counted,
+    notes,
+    headline: `DB+DE ${validRoutineCount}/${presentedRoutine.length}/${limits.routine} · R ${validRiskCount}/${presentedRisks.length}/${limits.risks}`,
+  };
 }
 
 function view(s, r) {
@@ -64,8 +82,7 @@ function view(s, r) {
     </section>
     <section class="split split-db">
       <nav class="side-tabs">${[order.slice(0, 3), order.slice(3)].map((group) => `<div class="tabcol">${group.map((id) => {
-        const count = id === 'risks' ? ` <small>${s.entries.filter((e) => e.cat === 'risks' && e.valid).length}/${limitsFor(r).risks}</small>` : '';
-        return `<button class="tab ${id === tab ? 'active' : ''}" data-tab="${id}" style="--c:${TABS[id].color}" data-act="tab" data-id="${id}">${TABS[id].label}${count}</button>`;
+        return `<button class="tab ${id === tab ? 'active' : ''}" data-tab="${id}" style="--c:${TABS[id].color}" data-act="tab" data-id="${id}">${TABS[id].label}</button>`;
       }).join('')}</div>`).join('')}</nav>
       <div class="center-col">
         <div class="total-card"><small>TOTAL</small><strong>${t(result.total)}</strong><span>${result.headline}</span></div>
