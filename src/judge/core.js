@@ -8,7 +8,6 @@ export const MODES = [
 ];
 
 export const SIMPLE_MODES = ['db', 'da', 'artistic', 'execution'];
-export const EXPERT_MODES = ['db', 'da', 'execution'];
 
 export const APPARATUS = {
   individual: [['hoop', 'Hoop'], ['ball', 'Ball'], ['clubs', 'Clubs'], ['ribbon', 'Ribbon'], ['rope', 'Rope']],
@@ -34,16 +33,13 @@ export function route() {
   return {
     mode,
     simple: variant === 'simple' && SIMPLE_MODES.includes(mode),
-    expert: variant === 'expert'
-      && EXPERT_MODES.includes(mode)
-      && (mode !== 'da' || safeDiscipline === 'individual'),
     discipline: safeDiscipline,
     level: ['senior', 'custom'].includes(level) ? level : 'junior',
     apparatus: list.some(([id]) => id === apparatus) ? apparatus : list[0][0],
   };
 }
 
-export const routeHref = (r) => `#/${r.mode}/${r.discipline}/${r.level}/${r.apparatus}${r.simple ? '/simple' : r.expert ? '/expert' : ''}`;
+export const routeHref = (r) => `#/${r.mode}/${r.discipline}/${r.level}/${r.apparatus}${r.simple ? '/simple' : ''}`;
 
 export function flash(message) {
   const node = document.createElement('div');
@@ -74,15 +70,14 @@ function shell(r, body) {
       ${SIMPLE_MODES.includes(r.mode) ? select('variant', [
         ['', 'Standard'],
         ['simple', 'Simple'],
-        ...(EXPERT_MODES.includes(r.mode) && (r.mode !== 'da' || r.discipline === 'individual') ? [['expert', 'Expert']] : []),
-      ], r.expert ? 'expert' : r.simple ? 'simple' : '') : ''}
+      ], r.simple ? 'simple' : '') : ''}
     </header>
     ${body}
   </div>`;
 }
 
-export function mount(r, { initial, view, actions = {}, live }) {
-  const key = `rg-judge:${r.mode}${r.simple ? '-simple' : r.expert ? '-expert' : ''}:${r.discipline}:${r.apparatus}`;
+export function mount(r, { initial, view, actions = {}, live, afterDraw }) {
+  const key = `rg-judge:${r.mode}${r.simple ? '-simple' : ''}:${r.discipline}:${r.apparatus}`;
   let state;
   try {
     state = { ...structuredClone(initial), ...JSON.parse(localStorage.getItem(key) || '{}') };
@@ -103,6 +98,7 @@ export function mount(r, { initial, view, actions = {}, live }) {
   const draw = () => {
     root.innerHTML = shell(r, view(state, r));
     tick();
+    afterDraw?.(state, root);
   };
   const context = { r, send: (summary) => sendResult(r, summary) };
 
@@ -133,13 +129,9 @@ export function mount(r, { initial, view, actions = {}, live }) {
   root.addEventListener('change', (event) => {
     if (!event.target.dataset.nav) return;
     const next = { ...r };
-    root.querySelectorAll('[data-nav]').forEach((node) => { next[node.dataset.nav] = node.value; });
+    root.querySelectorAll('[data-nav]').forEach((node) => { next[node.dataset.nav] = node.value;     });
     next.simple = next.variant === 'simple';
-    next.expert = next.variant === 'expert'
-      && EXPERT_MODES.includes(next.mode)
-      && (next.mode !== 'da' || next.discipline === 'individual');
     if (!SIMPLE_MODES.includes(next.mode)) next.simple = false;
-    if (!EXPERT_MODES.includes(next.mode)) next.expert = false;
     if (next.discipline !== r.discipline) next.apparatus = APPARATUS[next.discipline][0][0];
     location.hash = routeHref(next);
   });

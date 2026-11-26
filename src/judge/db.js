@@ -48,6 +48,9 @@ function view(s, r) {
   const tab = order.includes(s.tab) ? s.tab : order[0];
   const config = TABS[tab];
   const result = score(s, r);
+  const lastBalance = [...s.entries].reverse().find((entry) => entry.cat === 'balances' && entry.valid);
+  const lastRotation = [...s.entries].reverse().find((entry) => entry.cat === 'rotations' && entry.valid);
+  const extraChoice = lastRotation?.extraChoice || ([1, 2].includes(lastRotation?.extra) ? lastRotation.extra : 0);
   const columns = 4;
   const chips = s.entries.map((entry) => {
     const classes = ['chip', entry.valid ? '' : 'off', result.counted.has(entry.id) || !entry.valid ? '' : 'dim'].join(' ');
@@ -71,7 +74,8 @@ function view(s, r) {
       </div>
       <div class="vals-col">
         <section class="values" style="--cols:${columns}">${config.values.map((value) => `<button class="tile" data-act="add" data-v="${value}">${t(value)}</button>`).join('')}</section>
-        ${tab === 'rotations' ? `<section class="extras"><button class="tile small rotation-extra rotation-extra-1" data-act="extra" data-v="1">+0.1 (extra turn)</button><button class="tile small rotation-extra rotation-extra-2" data-act="extra" data-v="2">+0.2 (extra turn)</button></section>` : ''}
+        ${tab === 'rotations' ? `<section class="extras"><button class="tile small rotation-extra rotation-extra-1" data-act="extra" data-v="1" ${extraChoice === 2 ? 'disabled' : ''}>+0.1</button><button class="tile small rotation-extra rotation-extra-2" data-act="extra" data-v="2" ${extraChoice === 1 ? 'disabled' : ''}>+0.2</button></section>` : ''}
+        ${tab === 'balances' ? `<section class="extras"><button class="tile small flat-foot-button" data-act="flat-foot" aria-label="Flat foot, minus 0.1" title="Flat foot −0.1" ${lastBalance && !lastBalance.flatFoot ? '' : 'disabled'}>↓</button></section>` : ''}
       </div>
     </section>`;
 }
@@ -86,7 +90,16 @@ export default function (r) {
       extra: (s, d) => {
         const last = [...s.entries].reverse().find((entry) => entry.cat === 'rotations' && entry.valid);
         if (!last) return false;
-        last.extra = (last.extra || 0) + Number(d.v);
+        const value = Number(d.v);
+        if (![1, 2].includes(value) || last.extraChoice && last.extraChoice !== value) return false;
+        last.extraChoice = value;
+        last.extra = (last.extra || 0) + value;
+      },
+      'flat-foot': (s) => {
+        const last = [...s.entries].reverse().find((entry) => entry.cat === 'balances' && entry.valid);
+        if (!last || last.flatFoot) return false;
+        last.extra = (last.extra || 0) - 1;
+        last.flatFoot = true;
       },
       toggle: (s, d) => { const entry = s.entries.find((item) => item.id === d.id); if (entry) entry.valid = !entry.valid; },
     },
